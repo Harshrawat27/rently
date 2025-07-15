@@ -1,6 +1,4 @@
 // app/auth/signin.tsx
-import '../global.css';
-
 import { Link, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
