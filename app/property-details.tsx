@@ -1,11 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams } from 'expo-router';
+import { AddRoomForm } from '../components/AddRoomForm';
+import { DismissibleKeyboardView } from '../components/DismissibleKeyboardView';
+import { Header } from '../components/Header';
+import { RoomCard } from '../components/RoomCard';
 import { supabase } from '../lib/supabase';
 import { Property, Room } from '../lib/types';
-import { RoomCard } from '../components/RoomCard';
-import { AddRoomForm } from '../components/AddRoomForm';
 
 export default function PropertyDetailsScreen() {
   const { propertyId } = useLocalSearchParams<{ propertyId: string }>();
@@ -13,6 +23,7 @@ export default function PropertyDetailsScreen() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const router = useRouter();
 
   const fetchPropertyDetails = async () => {
     try {
@@ -48,9 +59,10 @@ export default function PropertyDetailsScreen() {
   }, [propertyId]);
 
   const handleRoomPress = (room: Room) => {
+    // Use relative path for better navigation
     router.push({
-      pathname: '/room-details',
-      params: { roomId: room.id }
+      pathname: './room-details',
+      params: { roomId: room.id },
     });
   };
 
@@ -61,86 +73,106 @@ export default function PropertyDetailsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 justify-center items-center bg-gray-50">
-        <Text className="text-gray-600">Loading property details...</Text>
+      <SafeAreaView className='flex-1 justify-center items-center bg-gray-50'>
+        <Text className='text-gray-600'>Loading property details...</Text>
       </SafeAreaView>
     );
   }
 
   if (!property) {
     return (
-      <SafeAreaView className="flex-1 justify-center items-center bg-gray-50">
-        <Text className="text-gray-600">Property not found</Text>
+      <SafeAreaView className='flex-1 justify-center items-center bg-gray-50'>
+        <Text className='text-gray-600'>Property not found</Text>
       </SafeAreaView>
     );
   }
 
-  const occupiedRooms = rooms.filter(room => room.is_occupied).length;
+  const occupiedRooms = rooms.filter((room) => room.is_occupied).length;
   const totalRooms = rooms.length;
 
+  const rightComponent = (
+    <TouchableOpacity
+      className='bg-blue-600 rounded-lg px-4 py-2'
+      onPress={() => setShowAddForm(!showAddForm)}
+    >
+      <Text className='text-white font-semibold'>
+        {showAddForm ? 'Cancel' : 'Add Room'}
+      </Text>
+    </TouchableOpacity>
+  );
+
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <View className="flex-1 px-4 py-6">
-        <View className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
-          <Text className="text-2xl font-bold text-gray-800 mb-2">
-            {property.name}
-          </Text>
-          <Text className="text-gray-600 mb-4">
-            {property.address}
-          </Text>
-          {property.description && (
-            <Text className="text-gray-500 mb-4">
-              {property.description}
-            </Text>
-          )}
-          <View className="flex-row justify-between">
-            <Text className="text-gray-700">
-              Total Rooms: {totalRooms}
-            </Text>
-            <Text className="text-gray-700">
-              Occupied: {occupiedRooms}
-            </Text>
-          </View>
-        </View>
-
-        <View className="flex-row justify-between items-center mb-6">
-          <Text className="text-xl font-bold text-gray-800">Rooms</Text>
-          <TouchableOpacity
-            className="bg-blue-600 rounded-lg px-4 py-2"
-            onPress={() => setShowAddForm(!showAddForm)}
-          >
-            <Text className="text-white font-semibold">
-              {showAddForm ? 'Cancel' : 'Add Room'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {showAddForm && (
-          <View className="mb-6">
-            <AddRoomForm propertyId={propertyId} onRoomAdded={handleRoomAdded} />
-          </View>
-        )}
-
-        {rooms.length === 0 ? (
-          <View className="flex-1 justify-center items-center">
-            <Text className="text-gray-500 text-center">
-              No rooms found. Add your first room to get started.
-            </Text>
-          </View>
-        ) : (
-          <FlatList
-            data={rooms}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <RoomCard
-                room={item}
-                onPress={() => handleRoomPress(item)}
-              />
-            )}
-            showsVerticalScrollIndicator={false}
+    <SafeAreaView className='flex-1 bg-gray-50'>
+      <DismissibleKeyboardView className='flex-1'>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className='flex-1'
+        >
+          <Header
+            title={property?.name || 'Property Details'}
+            rightComponent={rightComponent}
           />
-        )}
-      </View>
+
+          <ScrollView
+            className='flex-1'
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps='handled'
+          >
+            <View className='px-4 py-6'>
+              <View className='bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200'>
+                <Text className='text-2xl font-bold text-gray-800 mb-2'>
+                  {property.name}
+                </Text>
+                <Text className='text-gray-600 mb-4'>{property.address}</Text>
+                {property.description && (
+                  <Text className='text-gray-500 mb-4'>
+                    {property.description}
+                  </Text>
+                )}
+                <View className='flex-row justify-between'>
+                  <Text className='text-gray-700'>
+                    Total Rooms: {totalRooms}
+                  </Text>
+                  <Text className='text-gray-700'>
+                    Occupied: {occupiedRooms}
+                  </Text>
+                </View>
+              </View>
+
+              <Text className='text-xl font-bold text-gray-800 mb-4'>
+                Rooms
+              </Text>
+
+              {showAddForm && (
+                <View className='mb-6'>
+                  <AddRoomForm
+                    propertyId={propertyId}
+                    onRoomAdded={handleRoomAdded}
+                  />
+                </View>
+              )}
+
+              {rooms.length === 0 ? (
+                <View className='py-12 items-center'>
+                  <Text className='text-gray-500 text-center'>
+                    No rooms found. Add your first room to get started.
+                  </Text>
+                </View>
+              ) : (
+                <View>
+                  {rooms.map((room) => (
+                    <RoomCard
+                      key={room.id}
+                      room={room}
+                      onPress={() => handleRoomPress(room)}
+                    />
+                  ))}
+                </View>
+              )}
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </DismissibleKeyboardView>
     </SafeAreaView>
   );
 }
