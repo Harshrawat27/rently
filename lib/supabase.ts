@@ -1,3 +1,4 @@
+import './polyfills'; // Import polyfills first
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL

@@ -1,3 +1,4 @@
+import '../lib/polyfills'; // Import polyfills first
 import {
   DarkTheme,
   DefaultTheme,

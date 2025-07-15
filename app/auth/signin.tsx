@@ -27,9 +27,11 @@ export default function SignInScreen() {
 
     setLoading(true);
     try {
+      console.log('Attempting to sign in...');
       const { error } = await signIn(email, password);
       
       if (error) {
+        console.error('Signin auth error:', error);
         let errorMessage = error.message;
         
         // Provide more helpful error messages
@@ -45,9 +47,15 @@ export default function SignInScreen() {
 
       // Don't manually navigate - let AuthWrapper handle it
       console.log('Sign in successful - AuthWrapper will handle navigation');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Signin error:', error);
-      Alert.alert('Error', 'An unexpected error occurred during sign in');
+      
+      // Handle specific React Native errors
+      if (error?.message?.includes('structuredClone')) {
+        Alert.alert('Error', 'App compatibility issue. Please restart the app.');
+      } else {
+        Alert.alert('Error', `An unexpected error occurred: ${error?.message || 'Unknown error'}`);
+      }
     } finally {
       setLoading(false);
     }
