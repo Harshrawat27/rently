@@ -30,14 +30,24 @@ export default function SignInScreen() {
       const { error } = await signIn(email, password);
       
       if (error) {
-        Alert.alert('Error', error.message);
+        let errorMessage = error.message;
+        
+        // Provide more helpful error messages
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Please check your email and click the confirmation link before signing in.';
+        }
+        
+        Alert.alert('Sign In Failed', errorMessage);
         return;
       }
 
-      // Navigation will be handled by the auth context
-      router.replace('/(tabs)');
+      // Don't manually navigate - let AuthWrapper handle it
+      console.log('Sign in successful - AuthWrapper will handle navigation');
     } catch (error) {
-      Alert.alert('Error', 'An unexpected error occurred');
+      console.error('Signin error:', error);
+      Alert.alert('Error', 'An unexpected error occurred during sign in');
     } finally {
       setLoading(false);
     }

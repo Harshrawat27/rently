@@ -11,13 +11,20 @@ export const AuthWrapper: React.FC<{ children: React.ReactNode }> = ({ children 
     if (loading) return;
 
     const inAuthGroup = segments[0] === 'auth';
+    console.log('AuthWrapper - User:', !!user, 'InAuthGroup:', inAuthGroup, 'Segments:', segments);
 
-    if (!user && !inAuthGroup) {
-      // Redirect to signin if not authenticated
-      router.replace('/auth/signin');
-    } else if (user && inAuthGroup) {
-      // Redirect to main app if authenticated
-      router.replace('/(tabs)');
+    try {
+      if (!user && !inAuthGroup) {
+        // Redirect to signin if not authenticated
+        console.log('Redirecting to signin - no user');
+        router.replace('/auth/signin');
+      } else if (user && inAuthGroup) {
+        // Redirect to main app if authenticated
+        console.log('Redirecting to dashboard - user authenticated');
+        router.replace('/(tabs)');
+      }
+    } catch (error) {
+      console.error('Navigation error in AuthWrapper:', error);
     }
   }, [user, loading, segments]);
 

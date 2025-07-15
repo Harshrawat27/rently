@@ -2,9 +2,9 @@ import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { Property, Room, Tenant } from '../../lib/types';
-import { useAuth } from '../../lib/auth';
 
 export default function DashboardScreen() {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -15,6 +15,7 @@ export default function DashboardScreen() {
 
   const fetchDashboardData = async () => {
     try {
+      console.log('Fetching dashboard data...');
       const [propertiesResult, roomsResult, tenantsResult] = await Promise.all([
         supabase
           .from('properties')
@@ -24,15 +25,31 @@ export default function DashboardScreen() {
         supabase.from('tenants').select('*').eq('is_active', true),
       ]);
 
-      if (propertiesResult.error) throw propertiesResult.error;
-      if (roomsResult.error) throw roomsResult.error;
-      if (tenantsResult.error) throw tenantsResult.error;
+      if (propertiesResult.error) {
+        console.error('Properties error:', propertiesResult.error);
+        throw propertiesResult.error;
+      }
+      if (roomsResult.error) {
+        console.error('Rooms error:', roomsResult.error);
+        throw roomsResult.error;
+      }
+      if (tenantsResult.error) {
+        console.error('Tenants error:', tenantsResult.error);
+        throw tenantsResult.error;
+      }
+
+      console.log('Data fetched successfully:', {
+        properties: propertiesResult.data?.length || 0,
+        rooms: roomsResult.data?.length || 0,
+        tenants: tenantsResult.data?.length || 0
+      });
 
       setProperties(propertiesResult.data || []);
       setRooms(roomsResult.data || []);
       setTenants(tenantsResult.data || []);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      // Don't show alert here as it might interfere with navigation
     } finally {
       setLoading(false);
     }
@@ -130,7 +147,7 @@ export default function DashboardScreen() {
               className='mb-3 pb-3 border-b border-gray-200 last:border-b-0'
               onPress={() =>
                 router.push({
-                  pathname: '/property-details',
+                  pathname: './property-details',
                   params: { propertyId: property.id },
                 })
               }

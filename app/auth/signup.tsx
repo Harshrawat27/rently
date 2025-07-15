@@ -55,7 +55,7 @@ export default function SignUpScreen() {
 
       Alert.alert(
         'Success', 
-        'Account created successfully! Please check your email for verification.',
+        'Account created successfully! If email confirmation is enabled, please check your email for verification before signing in.',
         [
           { text: 'OK', onPress: () => router.replace('/auth/signin') }
         ]
