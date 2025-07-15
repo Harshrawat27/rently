@@ -1,5 +1,4 @@
-// app/auth/signup.tsx
-import { Link } from 'expo-router';
+import { Link, router } from 'expo-router';
 import React, { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -9,7 +8,9 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Alert,
 } from 'react-native';
+import { useAuth } from '../../lib/auth';
 
 export default function SignUpScreen() {
   const [fullName, setFullName] = useState('');
@@ -19,16 +20,51 @@ export default function SignUpScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { signUp } = useAuth();
 
-  const handleSignUp = () => {
-    // TODO: Implement Supabase sign up logic
-    console.log('Sign up with:', {
-      fullName,
-      email,
-      password,
-      confirmPassword,
-      agreeToTerms,
-    });
+  const handleSignUp = async () => {
+    if (!fullName.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    if (password.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters long');
+      return;
+    }
+
+    if (!agreeToTerms) {
+      Alert.alert('Error', 'Please agree to the terms and conditions');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await signUp(email, password);
+      
+      if (error) {
+        Alert.alert('Error', error.message);
+        return;
+      }
+
+      Alert.alert(
+        'Success', 
+        'Account created successfully! Please check your email for verification.',
+        [
+          { text: 'OK', onPress: () => router.replace('/auth/signin') }
+        ]
+      );
+    } catch (error) {
+      Alert.alert('Error', 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoogleSignUp = () => {
@@ -170,13 +206,13 @@ export default function SignUpScreen() {
           {/* Sign Up Button */}
           <TouchableOpacity
             onPress={handleSignUp}
-            disabled={!agreeToTerms}
+            disabled={!agreeToTerms || loading}
             className={`py-4 rounded-lg mt-6 ${
-              agreeToTerms ? 'bg-[#C96342]' : 'bg-gray-600'
+              agreeToTerms && !loading ? 'bg-[#C96342]' : 'bg-gray-600'
             }`}
           >
             <Text className='text-white text-center text-base font-semibold'>
-              Create Account
+              {loading ? 'Creating Account...' : 'Create Account'}
             </Text>
           </TouchableOpacity>
 

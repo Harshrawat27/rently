@@ -1,5 +1,4 @@
-// app/auth/signin.tsx
-import { Link, useRouter } from 'expo-router';
+import { Link, router } from 'expo-router';
 import React, { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -9,17 +8,39 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Alert,
 } from 'react-native';
+import { useAuth } from '../../lib/auth';
 
 export default function SignInScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const { signIn } = useAuth();
 
-  const handleSignIn = () => {
-    // TODO: Implement Supabase sign in logic
-    console.log('Sign in with:', { email, password });
+  const handleSignIn = async () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await signIn(email, password);
+      
+      if (error) {
+        Alert.alert('Error', error.message);
+        return;
+      }
+
+      // Navigation will be handled by the auth context
+      router.replace('/(tabs)');
+    } catch (error) {
+      Alert.alert('Error', 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoogleSignIn = () => {
@@ -99,10 +120,11 @@ export default function SignInScreen() {
           {/* Sign In Button */}
           <TouchableOpacity
             onPress={handleSignIn}
-            className='bg-[#C96342] py-4 rounded-lg mt-6'
+            disabled={loading}
+            className={`py-4 rounded-lg mt-6 ${loading ? 'bg-gray-600' : 'bg-[#C96342]'}`}
           >
             <Text className='text-white text-center text-base font-semibold'>
-              Sign In
+              {loading ? 'Signing In...' : 'Sign In'}
             </Text>
           </TouchableOpacity>
 
@@ -130,7 +152,7 @@ export default function SignInScreen() {
         {/* Sign Up Link */}
         <View className='flex-row justify-center mt-8 mb-8'>
           <Text className='text-gray-300 text-sm'>Don't have an account? </Text>
-          <Link href='/auth/signin' asChild>
+          <Link href='/auth/signup' asChild>
             <TouchableOpacity>
               <Text className='text-[#C96342] text-sm font-medium'>
                 Sign Up

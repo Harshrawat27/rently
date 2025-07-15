@@ -1,146 +1,178 @@
-// app/auth/signin.tsx
-import '../global.css';
+import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { supabase } from '../../lib/supabase';
+import { Property, Room, Tenant } from '../../lib/types';
+import { useAuth } from '../../lib/auth';
 
-import { Link, useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+export default function DashboardScreen() {
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { signOut } = useAuth();
 
-export default function SignInScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const router = useRouter();
+  const fetchDashboardData = async () => {
+    try {
+      const [propertiesResult, roomsResult, tenantsResult] = await Promise.all([
+        supabase
+          .from('properties')
+          .select('*')
+          .order('created_at', { ascending: false }),
+        supabase.from('rooms').select('*'),
+        supabase.from('tenants').select('*').eq('is_active', true),
+      ]);
 
-  const handleSignIn = () => {
-    // TODO: Implement Supabase sign in logic
-    console.log('Sign in with:', { email, password });
+      if (propertiesResult.error) throw propertiesResult.error;
+      if (roomsResult.error) throw roomsResult.error;
+      if (tenantsResult.error) throw tenantsResult.error;
+
+      setProperties(propertiesResult.data || []);
+      setRooms(roomsResult.data || []);
+      setTenants(tenantsResult.data || []);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleGoogleSignIn = () => {
-    // TODO: Implement Google sign in with Supabase
-    console.log('Sign in with Google');
-  };
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <SafeAreaView className='flex-1 justify-center items-center bg-gray-50'>
+        <Text className='text-gray-600'>Loading dashboard...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  const occupiedRooms = rooms.filter((room) => room.is_occupied).length;
+  const totalRooms = rooms.length;
+  const totalRevenue = tenants.reduce(
+    (sum, tenant) => sum + tenant.advance_amount,
+    0
+  );
+  const totalBalance = tenants.reduce(
+    (sum, tenant) => sum + tenant.balance_amount,
+    0
+  );
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className='flex-1 bg-[#1F1E1D]'
-    >
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        showsVerticalScrollIndicator={false}
-        className='px-6'
-      >
-        {/* Header */}
-        <View className='mt-16 mb-8'>
-          <Text className='text-white text-3xl font-bold mb-2'>
-            Welcome Back
-          </Text>
-          <Text className='text-gray-300 text-base'>
-            Sign in to continue to Rently
-          </Text>
-        </View>
-
-        {/* Sign In Form */}
-        <View className='space-y-6'>
-          {/* Email Input */}
-          <View>
-            <Text className='text-white text-sm font-medium mb-2'>Email</Text>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder='Enter your email'
-              placeholderTextColor='#9CA3AF'
-              keyboardType='email-address'
-              autoCapitalize='none'
-              autoCorrect={false}
-              className='bg-[#262624] text-white px-4 py-4 rounded-lg border border-gray-600 focus:border-[#C96342]'
-            />
-          </View>
-
-          {/* Password Input */}
-          <View>
-            <Text className='text-white text-sm font-medium mb-2'>
-              Password
-            </Text>
-            <View className='relative'>
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder='Enter your password'
-                placeholderTextColor='#9CA3AF'
-                secureTextEntry={!showPassword}
-                className='bg-[#262624] text-white px-4 py-4 pr-12 rounded-lg border border-gray-600 focus:border-[#C96342]'
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                className='absolute right-4 top-4'
-              >
-                <Text className='text-gray-400 text-sm'>
-                  {showPassword ? 'Hide' : 'Show'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Forgot Password */}
-          <TouchableOpacity className='self-end'>
-            <Text className='text-[#C96342] text-sm font-medium'>
-              Forgot Password?
-            </Text>
-          </TouchableOpacity>
-
-          {/* Sign In Button */}
+    <SafeAreaView className='flex-1 bg-gray-50'>
+      <ScrollView className='flex-1 px-4 py-6'>
+        <View className='flex-row justify-between items-center mb-6'>
+          <Text className='text-2xl font-bold text-gray-800'>Dashboard</Text>
           <TouchableOpacity
-            onPress={handleSignIn}
-            className='bg-[#C96342] py-4 rounded-lg mt-6'
+            onPress={signOut}
+            className='bg-red-600 rounded-lg px-4 py-2'
           >
-            <Text className='text-white text-center text-base font-semibold'>
-              Sign In
-            </Text>
-          </TouchableOpacity>
-
-          {/* Divider */}
-          <View className='flex-row items-center my-6'>
-            <View className='flex-1 h-px bg-gray-600' />
-            <Text className='text-gray-400 mx-4 text-sm'>or continue with</Text>
-            <View className='flex-1 h-px bg-gray-600' />
-          </View>
-
-          {/* Google Sign In Button */}
-          <TouchableOpacity
-            onPress={handleGoogleSignIn}
-            className='bg-[#262624] border border-gray-600 py-4 rounded-lg flex-row items-center justify-center space-x-3'
-          >
-            <View className='w-5 h-5 bg-white rounded-full flex items-center justify-center'>
-              <Text className='text-[#1F1E1D] text-xs font-bold'>G</Text>
-            </View>
-            <Text className='text-white text-base font-medium'>
-              Continue with Google
-            </Text>
+            <Text className='text-white font-semibold'>Sign Out</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Sign Up Link */}
-        <View className='flex-row justify-center mt-8 mb-8'>
-          <Text className='text-gray-300 text-sm'>Don't have an account? </Text>
-          <Link href='/auth/signin' asChild>
-            <TouchableOpacity>
-              <Text className='text-[#C96342] text-sm font-medium'>
-                Sign Up
-              </Text>
+        <View className='grid grid-cols-2 gap-4 mb-6'>
+          <View className='bg-white rounded-lg p-4 shadow-sm border border-gray-200'>
+            <Text className='text-2xl font-bold text-blue-600'>
+              {properties.length}
+            </Text>
+            <Text className='text-gray-600'>Properties</Text>
+          </View>
+
+          <View className='bg-white rounded-lg p-4 shadow-sm border border-gray-200'>
+            <Text className='text-2xl font-bold text-green-600'>
+              {totalRooms}
+            </Text>
+            <Text className='text-gray-600'>Total Rooms</Text>
+          </View>
+
+          <View className='bg-white rounded-lg p-4 shadow-sm border border-gray-200'>
+            <Text className='text-2xl font-bold text-orange-600'>
+              {occupiedRooms}
+            </Text>
+            <Text className='text-gray-600'>Occupied Rooms</Text>
+          </View>
+
+          <View className='bg-white rounded-lg p-4 shadow-sm border border-gray-200'>
+            <Text className='text-2xl font-bold text-purple-600'>
+              {tenants.length}
+            </Text>
+            <Text className='text-gray-600'>Active Tenants</Text>
+          </View>
+        </View>
+
+        <View className='grid grid-cols-2 gap-4 mb-6'>
+          <View className='bg-white rounded-lg p-4 shadow-sm border border-gray-200'>
+            <Text className='text-2xl font-bold text-green-600'>
+              ₹{totalRevenue.toLocaleString()}
+            </Text>
+            <Text className='text-gray-600'>Total Advances</Text>
+          </View>
+
+          <View className='bg-white rounded-lg p-4 shadow-sm border border-gray-200'>
+            <Text className='text-2xl font-bold text-red-600'>
+              ₹{totalBalance.toLocaleString()}
+            </Text>
+            <Text className='text-gray-600'>Total Balance</Text>
+          </View>
+        </View>
+
+        <View className='bg-white rounded-lg p-6 shadow-sm border border-gray-200 mb-6'>
+          <Text className='text-xl font-bold text-gray-800 mb-4'>
+            Recent Properties
+          </Text>
+          {properties.slice(0, 3).map((property) => (
+            <TouchableOpacity
+              key={property.id}
+              className='mb-3 pb-3 border-b border-gray-200 last:border-b-0'
+              onPress={() =>
+                router.push({
+                  pathname: '/property-details',
+                  params: { propertyId: property.id },
+                })
+              }
+            >
+              <Text className='text-gray-800 font-medium'>{property.name}</Text>
+              <Text className='text-gray-600 text-sm'>{property.address}</Text>
             </TouchableOpacity>
-          </Link>
+          ))}
+
+          {properties.length === 0 && (
+            <Text className='text-gray-500 text-center py-4'>
+              No properties found. Add your first property to get started.
+            </Text>
+          )}
+        </View>
+
+        <View className='bg-white rounded-lg p-6 shadow-sm border border-gray-200'>
+          <Text className='text-xl font-bold text-gray-800 mb-4'>
+            Recent Tenants
+          </Text>
+          {tenants.slice(0, 3).map((tenant) => (
+            <View
+              key={tenant.id}
+              className='mb-3 pb-3 border-b border-gray-200 last:border-b-0'
+            >
+              <Text className='text-gray-800 font-medium'>{tenant.name}</Text>
+              <Text className='text-gray-600 text-sm'>
+                {tenant.phone_number}
+              </Text>
+              <Text className='text-gray-500 text-sm'>
+                Advance: ₹{tenant.advance_amount.toLocaleString()}
+              </Text>
+            </View>
+          ))}
+
+          {tenants.length === 0 && (
+            <Text className='text-gray-500 text-center py-4'>
+              No active tenants found.
+            </Text>
+          )}
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
