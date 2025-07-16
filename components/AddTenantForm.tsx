@@ -22,6 +22,18 @@ export const AddTenantForm: React.FC<AddTenantFormProps> = ({ roomId, onTenantAd
       return;
     }
 
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(bookingDate)) {
+      Alert.alert('Error', 'Please enter date in YYYY-MM-DD format');
+      return;
+    }
+
+    const parsedDate = new Date(bookingDate);
+    if (isNaN(parsedDate.getTime()) || parsedDate.toISOString().split('T')[0] !== bookingDate) {
+      Alert.alert('Error', 'Please enter a valid date in YYYY-MM-DD format');
+      return;
+    }
+
     const advance = parseFloat(advanceAmount);
     const balance = parseFloat(balanceAmount);
     const persons = parseInt(numberOfPersons);
