@@ -47,23 +47,23 @@ export default function PropertiesScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 justify-center items-center bg-gray-50">
-        <Text className="text-gray-600">Loading properties...</Text>
+      <SafeAreaView className="flex-1 justify-center items-center bg-[#1F1E1D]">
+        <Text className="text-white">Loading properties...</Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-[#1F1E1D]">
       <DismissibleKeyboardView className="flex-1">
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           className="flex-1"
         >
-          <View className="flex-row justify-between items-center px-4 py-6 bg-white border-b border-gray-200">
-            <Text className="text-2xl font-bold text-gray-800">Properties</Text>
+          <View className="flex-row justify-between items-center px-4 py-6 bg-[#262624] border-b border-gray-700">
+            <Text className="text-2xl font-bold text-white">Properties</Text>
             <TouchableOpacity
-              className="bg-blue-600 rounded-lg px-4 py-2"
+              className="bg-[#C96342] rounded-lg px-4 py-2"
               onPress={() => setShowAddForm(!showAddForm)}
             >
               <Text className="text-white font-semibold">
@@ -86,7 +86,7 @@ export default function PropertiesScreen() {
 
               {properties.length === 0 ? (
                 <View className="py-12 items-center">
-                  <Text className="text-gray-500 text-center">
+                  <Text className="text-gray-400 text-center">
                     No properties found. Add your first property to get started.
                   </Text>
                 </View>

@@ -62,23 +62,23 @@ export default function TenantDetailsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 justify-center items-center bg-gray-50">
-        <Text className="text-gray-600">Loading tenant details...</Text>
+      <SafeAreaView className="flex-1 justify-center items-center bg-[#1F1E1D]">
+        <Text className="text-white">Loading tenant details...</Text>
       </SafeAreaView>
     );
   }
 
   if (!tenant) {
     return (
-      <SafeAreaView className="flex-1 justify-center items-center bg-gray-50">
-        <Text className="text-gray-600">Tenant not found</Text>
+      <SafeAreaView className="flex-1 justify-center items-center bg-[#1F1E1D]">
+        <Text className="text-white">Tenant not found</Text>
       </SafeAreaView>
     );
   }
 
   const rightComponent = (
     <TouchableOpacity
-      className="bg-blue-600 rounded-lg px-4 py-2"
+      className="bg-[#C96342] rounded-lg px-4 py-2"
       onPress={() => setShowAddForm(!showAddForm)}
     >
       <Text className="text-white font-semibold">
@@ -88,7 +88,7 @@ export default function TenantDetailsScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-[#1F1E1D]">
       <DismissibleKeyboardView className="flex-1">
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -105,47 +105,47 @@ export default function TenantDetailsScreen() {
             keyboardShouldPersistTaps="handled"
           >
             <View className="px-4 py-6">
-              <View className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
+              <View className="bg-[#262624] rounded-lg p-6 mb-6 border border-gray-700">
                 <View className="flex-row justify-between items-start mb-4">
-                  <Text className="text-2xl font-bold text-gray-800">
+                  <Text className="text-2xl font-bold text-white">
                     {tenant.name}
                   </Text>
-                  <View className={`px-3 py-1 rounded-full ${tenant.is_active ? 'bg-green-100' : 'bg-red-100'}`}>
-                    <Text className={`text-sm font-medium ${tenant.is_active ? 'text-green-700' : 'text-red-700'}`}>
+                  <View className={`px-3 py-1 rounded-full ${tenant.is_active ? 'bg-green-800/20' : 'bg-red-800/20'}`}>
+                    <Text className={`text-sm font-medium ${tenant.is_active ? 'text-green-400' : 'text-red-400'}`}>
                       {tenant.is_active ? 'Active' : 'Inactive'}
                     </Text>
                   </View>
                 </View>
                 
                 {tenant.room && (
-                  <Text className="text-gray-600 mb-2">
+                  <Text className="text-gray-300 mb-2">
                     Room {tenant.room.room_number} - {tenant.room.property?.name}
                   </Text>
                 )}
                 
-                <Text className="text-gray-600 mb-2">
+                <Text className="text-gray-300 mb-2">
                   Phone: {tenant.phone_number}
                 </Text>
                 
-                <Text className="text-gray-600 mb-4">
+                <Text className="text-gray-300 mb-4">
                   Persons: {tenant.number_of_persons}
                 </Text>
                 
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-gray-700">
+                  <Text className="text-gray-300">
                     Advance: ₹{tenant.advance_amount.toLocaleString()}
                   </Text>
-                  <Text className="text-gray-700">
+                  <Text className="text-gray-300">
                     Balance: ₹{tenant.balance_amount.toLocaleString()}
                   </Text>
                 </View>
                 
-                <Text className="text-gray-500 text-sm">
+                <Text className="text-gray-400 text-sm">
                   Booking Date: {new Date(tenant.booking_date).toLocaleDateString()}
                 </Text>
               </View>
 
-              <Text className="text-xl font-bold text-gray-800 mb-4">Meter Readings</Text>
+              <Text className="text-xl font-bold text-white mb-4">Meter Readings</Text>
 
               {showAddForm && (
                 <View className="mb-6">
@@ -155,14 +155,14 @@ export default function TenantDetailsScreen() {
 
               {meterReadings.length === 0 ? (
                 <View className="py-12 items-center">
-                  <Text className="text-gray-500 text-center">
+                  <Text className="text-gray-400 text-center">
                     No meter readings found. Add your first reading to get started.
                   </Text>
                 </View>
               ) : (
                 <View>
                   {meterReadings.map((reading) => (
-                    <MeterReadingCard key={reading.id} reading={reading} />
+                    <MeterReadingCard key={reading.id} reading={reading} onUpdate={fetchTenantDetails} />
                   ))}
                 </View>
               )}

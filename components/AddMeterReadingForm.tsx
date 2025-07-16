@@ -64,13 +64,13 @@ export const AddMeterReadingForm: React.FC<AddMeterReadingFormProps> = ({ tenant
   };
 
   return (
-    <View className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-      <Text className="text-xl font-bold text-gray-800 mb-6">Add Meter Reading</Text>
+    <View className="bg-[#262624] rounded-lg p-6 border border-gray-700">
+      <Text className="text-xl font-bold text-white mb-6">Add Meter Reading</Text>
       
       <View className="mb-4">
-        <Text className="text-gray-700 mb-2 font-medium">Reading Date *</Text>
+        <Text className="text-white mb-2 font-medium">Reading Date *</Text>
         <TextInput
-          className="border border-gray-300 rounded-lg px-4 py-3 text-gray-800"
+          className="bg-[#1F1E1D] border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-[#C96342]"
           value={readingDate}
           onChangeText={setReadingDate}
           placeholder="YYYY-MM-DD"
@@ -79,9 +79,9 @@ export const AddMeterReadingForm: React.FC<AddMeterReadingFormProps> = ({ tenant
       </View>
 
       <View className="mb-4">
-        <Text className="text-gray-700 mb-2 font-medium">Previous Reading *</Text>
+        <Text className="text-white mb-2 font-medium">Previous Reading *</Text>
         <TextInput
-          className="border border-gray-300 rounded-lg px-4 py-3 text-gray-800"
+          className="bg-[#1F1E1D] border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-[#C96342]"
           value={previousReading}
           onChangeText={setPreviousReading}
           placeholder="Enter previous meter reading"
@@ -91,9 +91,9 @@ export const AddMeterReadingForm: React.FC<AddMeterReadingFormProps> = ({ tenant
       </View>
 
       <View className="mb-6">
-        <Text className="text-gray-700 mb-2 font-medium">Current Reading *</Text>
+        <Text className="text-white mb-2 font-medium">Current Reading *</Text>
         <TextInput
-          className="border border-gray-300 rounded-lg px-4 py-3 text-gray-800"
+          className="bg-[#1F1E1D] border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-[#C96342]"
           value={currentReading}
           onChangeText={setCurrentReading}
           placeholder="Enter current meter reading"
@@ -103,7 +103,7 @@ export const AddMeterReadingForm: React.FC<AddMeterReadingFormProps> = ({ tenant
       </View>
 
       <TouchableOpacity
-        className={`rounded-lg py-3 px-6 ${loading ? 'bg-gray-400' : 'bg-blue-600'}`}
+        className={`rounded-lg py-3 px-6 ${loading ? 'bg-gray-600' : 'bg-[#C96342]'}`}
         onPress={handleSubmit}
         disabled={loading}
       >

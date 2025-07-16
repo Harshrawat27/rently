@@ -153,6 +153,7 @@ export default function RoomDetailsScreen() {
                       key={tenant.id}
                       tenant={tenant}
                       onPress={() => handleTenantPress(tenant)}
+                      onUpdate={fetchRoomDetails}
                     />
                   ))}
                 </View>
