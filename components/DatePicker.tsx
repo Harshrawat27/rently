@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal } from 'react-native';
-import DatePicker from 'react-native-date-picker';
+import { View, Text, TouchableOpacity, Platform, Modal } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 interface DatePickerProps {
   value: string;
@@ -20,11 +20,20 @@ export const CustomDatePicker: React.FC<DatePickerProps> = ({
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(value ? new Date(value) : new Date());
 
-  const handleConfirm = (selectedDate: Date) => {
-    setOpen(false);
-    setDate(selectedDate);
-    const formattedDate = selectedDate.toISOString().split('T')[0];
-    onChangeText(formattedDate);
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setOpen(false);
+    }
+    
+    if (selectedDate) {
+      setDate(selectedDate);
+      const formattedDate = selectedDate.toISOString().split('T')[0];
+      onChangeText(formattedDate);
+    }
+    
+    if (Platform.OS === 'ios') {
+      setOpen(false);
+    }
   };
 
   const handleCancel = () => {
@@ -49,18 +58,49 @@ export const CustomDatePicker: React.FC<DatePickerProps> = ({
         </Text>
       </TouchableOpacity>
       
-      <DatePicker
-        modal
-        open={open}
-        date={date}
-        mode="date"
-        onConfirm={handleConfirm}
-        onCancel={handleCancel}
-        theme="dark"
-        title="Select Date"
-        confirmText="Confirm"
-        cancelText="Cancel"
-      />
+      {Platform.OS === 'ios' ? (
+        <Modal
+          visible={open}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={handleCancel}
+        >
+          <View className="flex-1 justify-end bg-black/50">
+            <View className="bg-[#1F1E1D] p-4 rounded-t-lg">
+              <View className="flex-row justify-between items-center mb-4">
+                <TouchableOpacity onPress={handleCancel}>
+                  <Text className="text-[#C96342] text-lg">Cancel</Text>
+                </TouchableOpacity>
+                <Text className="text-white text-lg font-semibold">Select Date</Text>
+                <TouchableOpacity onPress={() => handleDateChange(null, date)}>
+                  <Text className="text-[#C96342] text-lg">Done</Text>
+                </TouchableOpacity>
+              </View>
+              <DateTimePicker
+                value={date}
+                mode="date"
+                display="spinner"
+                onChange={(event, selectedDate) => {
+                  if (selectedDate) {
+                    setDate(selectedDate);
+                  }
+                }}
+                themeVariant="dark"
+              />
+            </View>
+          </View>
+        </Modal>
+      ) : (
+        open && (
+          <DateTimePicker
+            value={date}
+            mode="date"
+            display="default"
+            onChange={handleDateChange}
+            themeVariant="dark"
+          />
+        )
+      )}
     </View>
   );
 };
