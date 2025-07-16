@@ -73,16 +73,16 @@ export default function PropertyDetailsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className='flex-1 justify-center items-center bg-gray-50'>
-        <Text className='text-gray-600'>Loading property details...</Text>
+      <SafeAreaView className='flex-1 justify-center items-center bg-[#1F1E1D]'>
+        <Text className='text-white'>Loading property details...</Text>
       </SafeAreaView>
     );
   }
 
   if (!property) {
     return (
-      <SafeAreaView className='flex-1 justify-center items-center bg-gray-50'>
-        <Text className='text-gray-600'>Property not found</Text>
+      <SafeAreaView className='flex-1 justify-center items-center bg-[#1F1E1D]'>
+        <Text className='text-white'>Property not found</Text>
       </SafeAreaView>
     );
   }
@@ -92,7 +92,7 @@ export default function PropertyDetailsScreen() {
 
   const rightComponent = (
     <TouchableOpacity
-      className='bg-blue-600 rounded-lg px-4 py-2'
+      className='bg-[#C96342] rounded-lg px-4 py-2'
       onPress={() => setShowAddForm(!showAddForm)}
     >
       <Text className='text-white font-semibold'>
@@ -102,7 +102,7 @@ export default function PropertyDetailsScreen() {
   );
 
   return (
-    <SafeAreaView className='flex-1 bg-gray-50'>
+    <SafeAreaView className='flex-1 bg-[#1F1E1D]'>
       <DismissibleKeyboardView className='flex-1'>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -119,27 +119,27 @@ export default function PropertyDetailsScreen() {
             keyboardShouldPersistTaps='handled'
           >
             <View className='px-4 py-6'>
-              <View className='bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200'>
-                <Text className='text-2xl font-bold text-gray-800 mb-2'>
+              <View className='bg-[#262624] rounded-lg p-6 mb-6 border border-gray-700'>
+                <Text className='text-2xl font-bold text-white mb-2'>
                   {property.name}
                 </Text>
-                <Text className='text-gray-600 mb-4'>{property.address}</Text>
+                <Text className='text-gray-300 mb-4'>{property.address}</Text>
                 {property.description && (
-                  <Text className='text-gray-500 mb-4'>
+                  <Text className='text-gray-400 mb-4'>
                     {property.description}
                   </Text>
                 )}
                 <View className='flex-row justify-between'>
-                  <Text className='text-gray-700'>
+                  <Text className='text-gray-300'>
                     Total Rooms: {totalRooms}
                   </Text>
-                  <Text className='text-gray-700'>
+                  <Text className='text-gray-300'>
                     Occupied: {occupiedRooms}
                   </Text>
                 </View>
               </View>
 
-              <Text className='text-xl font-bold text-gray-800 mb-4'>
+              <Text className='text-xl font-bold text-white mb-4'>
                 Rooms
               </Text>
 
@@ -154,7 +154,7 @@ export default function PropertyDetailsScreen() {
 
               {rooms.length === 0 ? (
                 <View className='py-12 items-center'>
-                  <Text className='text-gray-500 text-center'>
+                  <Text className='text-gray-400 text-center'>
                     No rooms found. Add your first room to get started.
                   </Text>
                 </View>

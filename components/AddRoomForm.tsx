@@ -49,13 +49,13 @@ export const AddRoomForm: React.FC<AddRoomFormProps> = ({ propertyId, onRoomAdde
   };
 
   return (
-    <View className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-      <Text className="text-xl font-bold text-gray-800 mb-6">Add New Room</Text>
+    <View className="bg-[#262624] rounded-lg p-6 border border-gray-700">
+      <Text className="text-xl font-bold text-white mb-6">Add New Room</Text>
       
       <View className="mb-4">
-        <Text className="text-gray-700 mb-2 font-medium">Room Number *</Text>
+        <Text className="text-white mb-2 font-medium">Room Number *</Text>
         <TextInput
-          className="border border-gray-300 rounded-lg px-4 py-3 text-gray-800"
+          className="bg-[#1F1E1D] border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-[#C96342]"
           value={roomNumber}
           onChangeText={setRoomNumber}
           placeholder="Enter room number"
@@ -64,9 +64,9 @@ export const AddRoomForm: React.FC<AddRoomFormProps> = ({ propertyId, onRoomAdde
       </View>
 
       <View className="mb-6">
-        <Text className="text-gray-700 mb-2 font-medium">Rent Amount *</Text>
+        <Text className="text-white mb-2 font-medium">Rent Amount *</Text>
         <TextInput
-          className="border border-gray-300 rounded-lg px-4 py-3 text-gray-800"
+          className="bg-[#1F1E1D] border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-[#C96342]"
           value={rentAmount}
           onChangeText={setRentAmount}
           placeholder="Enter rent amount"
@@ -76,7 +76,7 @@ export const AddRoomForm: React.FC<AddRoomFormProps> = ({ propertyId, onRoomAdde
       </View>
 
       <TouchableOpacity
-        className={`rounded-lg py-3 px-6 ${loading ? 'bg-gray-400' : 'bg-blue-600'}`}
+        className={`rounded-lg py-3 px-6 ${loading ? 'bg-gray-600' : 'bg-[#C96342]'}`}
         onPress={handleSubmit}
         disabled={loading}
       >

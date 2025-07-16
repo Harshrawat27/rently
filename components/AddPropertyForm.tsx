@@ -52,13 +52,13 @@ export const AddPropertyForm: React.FC<AddPropertyFormProps> = ({ onPropertyAdde
   };
 
   return (
-    <View className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-      <Text className="text-xl font-bold text-gray-800 mb-6">Add New Property</Text>
+    <View className="bg-[#262624] rounded-lg p-6 border border-gray-700">
+      <Text className="text-xl font-bold text-white mb-6">Add New Property</Text>
       
       <View className="mb-4">
-        <Text className="text-gray-700 mb-2 font-medium">Property Name *</Text>
+        <Text className="text-white mb-2 font-medium">Property Name *</Text>
         <TextInput
-          className="border border-gray-300 rounded-lg px-4 py-3 text-gray-800"
+          className="bg-[#1F1E1D] border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-[#C96342]"
           value={name}
           onChangeText={setName}
           placeholder="Enter property name"
@@ -67,9 +67,9 @@ export const AddPropertyForm: React.FC<AddPropertyFormProps> = ({ onPropertyAdde
       </View>
 
       <View className="mb-4">
-        <Text className="text-gray-700 mb-2 font-medium">Address *</Text>
+        <Text className="text-white mb-2 font-medium">Address *</Text>
         <TextInput
-          className="border border-gray-300 rounded-lg px-4 py-3 text-gray-800"
+          className="bg-[#1F1E1D] border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-[#C96342]"
           value={address}
           onChangeText={setAddress}
           placeholder="Enter property address"
@@ -80,9 +80,9 @@ export const AddPropertyForm: React.FC<AddPropertyFormProps> = ({ onPropertyAdde
       </View>
 
       <View className="mb-6">
-        <Text className="text-gray-700 mb-2 font-medium">Description</Text>
+        <Text className="text-white mb-2 font-medium">Description</Text>
         <TextInput
-          className="border border-gray-300 rounded-lg px-4 py-3 text-gray-800"
+          className="bg-[#1F1E1D] border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-[#C96342]"
           value={description}
           onChangeText={setDescription}
           placeholder="Enter property description (optional)"
@@ -93,7 +93,7 @@ export const AddPropertyForm: React.FC<AddPropertyFormProps> = ({ onPropertyAdde
       </View>
 
       <TouchableOpacity
-        className={`rounded-lg py-3 px-6 ${loading ? 'bg-gray-400' : 'bg-blue-600'}`}
+        className={`rounded-lg py-3 px-6 ${loading ? 'bg-gray-600' : 'bg-[#C96342]'}`}
         onPress={handleSubmit}
         disabled={loading}
       >

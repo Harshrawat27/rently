@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { supabase } from '../lib/supabase';
+import { CustomDatePicker } from './DatePicker';
 
 interface AddTenantFormProps {
   roomId: string;
@@ -119,16 +120,13 @@ export const AddTenantForm: React.FC<AddTenantFormProps> = ({ roomId, onTenantAd
         />
       </View>
 
-      <View className="mb-4">
-        <Text className="text-white mb-2 font-medium">Booking Date *</Text>
-        <TextInput
-          className="bg-[#1F1E1D] border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-[#C96342]"
-          value={bookingDate}
-          onChangeText={setBookingDate}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor="#9CA3AF"
-        />
-      </View>
+      <CustomDatePicker
+        value={bookingDate}
+        onChangeText={setBookingDate}
+        label="Booking Date"
+        placeholder="Select booking date"
+        required
+      />
 
       <View className="mb-4">
         <Text className="text-white mb-2 font-medium">Advance Amount *</Text>

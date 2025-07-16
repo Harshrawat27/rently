@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { supabase } from '../lib/supabase';
+import { CustomDatePicker } from './DatePicker';
 
 interface AddMeterReadingFormProps {
   tenantId: string;
@@ -67,16 +68,13 @@ export const AddMeterReadingForm: React.FC<AddMeterReadingFormProps> = ({ tenant
     <View className="bg-[#262624] rounded-lg p-6 border border-gray-700">
       <Text className="text-xl font-bold text-white mb-6">Add Meter Reading</Text>
       
-      <View className="mb-4">
-        <Text className="text-white mb-2 font-medium">Reading Date *</Text>
-        <TextInput
-          className="bg-[#1F1E1D] border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-[#C96342]"
-          value={readingDate}
-          onChangeText={setReadingDate}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor="#9CA3AF"
-        />
-      </View>
+      <CustomDatePicker
+        value={readingDate}
+        onChangeText={setReadingDate}
+        label="Reading Date"
+        placeholder="Select reading date"
+        required
+      />
 
       <View className="mb-4">
         <Text className="text-white mb-2 font-medium">Previous Reading *</Text>

@@ -66,16 +66,16 @@ export default function RoomDetailsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 justify-center items-center bg-gray-50">
-        <Text className="text-gray-600">Loading room details...</Text>
+      <SafeAreaView className="flex-1 justify-center items-center bg-[#1F1E1D]">
+        <Text className="text-white">Loading room details...</Text>
       </SafeAreaView>
     );
   }
 
   if (!room) {
     return (
-      <SafeAreaView className="flex-1 justify-center items-center bg-gray-50">
-        <Text className="text-gray-600">Room not found</Text>
+      <SafeAreaView className="flex-1 justify-center items-center bg-[#1F1E1D]">
+        <Text className="text-white">Room not found</Text>
       </SafeAreaView>
     );
   }
@@ -84,7 +84,7 @@ export default function RoomDetailsScreen() {
 
   const rightComponent = !room?.is_occupied ? (
     <TouchableOpacity
-      className="bg-blue-600 rounded-lg px-4 py-2"
+      className="bg-[#C96342] rounded-lg px-4 py-2"
       onPress={() => setShowAddForm(!showAddForm)}
     >
       <Text className="text-white font-semibold">
@@ -94,7 +94,7 @@ export default function RoomDetailsScreen() {
   ) : null;
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-[#1F1E1D]">
       <DismissibleKeyboardView className="flex-1">
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -111,28 +111,28 @@ export default function RoomDetailsScreen() {
             keyboardShouldPersistTaps="handled"
           >
             <View className="px-4 py-6">
-              <View className="bg-white rounded-lg p-6 mb-6 shadow-sm border border-gray-200">
-                <Text className="text-2xl font-bold text-gray-800 mb-2">
+              <View className="bg-[#262624] rounded-lg p-6 mb-6 border border-gray-700">
+                <Text className="text-2xl font-bold text-white mb-2">
                   Room {room.room_number}
                 </Text>
                 {room.property && (
-                  <Text className="text-gray-600 mb-4">
+                  <Text className="text-gray-300 mb-4">
                     {room.property.name}
                   </Text>
                 )}
                 <View className="flex-row justify-between items-center">
-                  <Text className="text-gray-700">
+                  <Text className="text-gray-300">
                     Rent: ₹{room.rent_amount.toLocaleString()}
                   </Text>
-                  <View className={`px-3 py-1 rounded-full ${room.is_occupied ? 'bg-red-100' : 'bg-green-100'}`}>
-                    <Text className={`text-sm font-medium ${room.is_occupied ? 'text-red-700' : 'text-green-700'}`}>
+                  <View className={`px-3 py-1 rounded-full ${room.is_occupied ? 'bg-red-800/20' : 'bg-green-800/20'}`}>
+                    <Text className={`text-sm font-medium ${room.is_occupied ? 'text-red-400' : 'text-green-400'}`}>
                       {room.is_occupied ? 'Occupied' : 'Available'}
                     </Text>
                   </View>
                 </View>
               </View>
 
-              <Text className="text-xl font-bold text-gray-800 mb-4">Tenants</Text>
+              <Text className="text-xl font-bold text-white mb-4">Tenants</Text>
 
               {showAddForm && (
                 <View className="mb-6">
@@ -142,7 +142,7 @@ export default function RoomDetailsScreen() {
 
               {tenants.length === 0 ? (
                 <View className="py-12 items-center">
-                  <Text className="text-gray-500 text-center">
+                  <Text className="text-gray-400 text-center">
                     No tenants found. Add your first tenant to get started.
                   </Text>
                 </View>
