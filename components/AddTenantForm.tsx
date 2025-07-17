@@ -13,10 +13,11 @@ export const AddTenantForm: React.FC<AddTenantFormProps> = ({ roomId, onTenantAd
   const [phoneNumber, setPhoneNumber] = useState('');
   const [bookingDate, setBookingDate] = useState('');
   const [numberOfPersons, setNumberOfPersons] = useState('');
+  const [electricityReading, setElectricityReading] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!name.trim() || !phoneNumber.trim() || !bookingDate || !numberOfPersons) {
+    if (!name.trim() || !phoneNumber.trim() || !bookingDate || !numberOfPersons || !electricityReading.trim()) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
@@ -34,15 +35,22 @@ export const AddTenantForm: React.FC<AddTenantFormProps> = ({ roomId, onTenantAd
     }
 
     const persons = parseInt(numberOfPersons);
+    const electricityReadingNum = parseFloat(electricityReading);
 
     if (isNaN(persons) || persons <= 0) {
       Alert.alert('Error', 'Please enter a valid number of persons');
       return;
     }
 
+    if (isNaN(electricityReadingNum) || electricityReadingNum < 0) {
+      Alert.alert('Error', 'Please enter a valid electricity reading');
+      return;
+    }
+
     setLoading(true);
     try {
-      const { error: tenantError } = await supabase
+      // Insert tenant
+      const { data: tenantData, error: tenantError } = await supabase
         .from('tenants')
         .insert([{ 
           room_id: roomId,
@@ -52,10 +60,25 @@ export const AddTenantForm: React.FC<AddTenantFormProps> = ({ roomId, onTenantAd
           advance_amount: 0, // Default to 0, will be managed separately
           balance_amount: 0, // Default to 0, will be managed separately
           number_of_persons: persons
-        }]);
+        }])
+        .select()
+        .single();
 
       if (tenantError) throw tenantError;
 
+      // Add initial electricity reading
+      const { error: readingError } = await supabase
+        .from('electric_meter_readings')
+        .insert([{
+          tenant_id: tenantData.id,
+          current_reading: electricityReadingNum,
+          previous_reading: 0, // No previous reading for initial entry
+          reading_date: bookingDate
+        }]);
+
+      if (readingError) throw readingError;
+
+      // Update room as occupied
       const { error: roomError } = await supabase
         .from('rooms')
         .update({ is_occupied: true })
@@ -63,11 +86,12 @@ export const AddTenantForm: React.FC<AddTenantFormProps> = ({ roomId, onTenantAd
 
       if (roomError) throw roomError;
 
-      Alert.alert('Success', 'Tenant added successfully. You can now manage advance and balance payments from the tenant details page.');
+      Alert.alert('Success', 'Tenant added successfully with initial electricity reading. You can now manage billing from the tenant details page.');
       setName('');
       setPhoneNumber('');
       setBookingDate('');
       setNumberOfPersons('');
+      setElectricityReading('');
       onTenantAdded();
     } catch (error) {
       Alert.alert('Error', 'Failed to add tenant');
@@ -112,13 +136,25 @@ export const AddTenantForm: React.FC<AddTenantFormProps> = ({ roomId, onTenantAd
         required
       />
 
-      <View className="mb-6">
+      <View className="mb-4">
         <Text className="text-white mb-2 font-medium">Number of Persons *</Text>
         <TextInput
           className="bg-[#1F1E1D] border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-[#C96342]"
           value={numberOfPersons}
           onChangeText={setNumberOfPersons}
           placeholder="Enter number of persons"
+          placeholderTextColor="#9CA3AF"
+          keyboardType="numeric"
+        />
+      </View>
+
+      <View className="mb-6">
+        <Text className="text-white mb-2 font-medium">Initial Electricity Reading *</Text>
+        <TextInput
+          className="bg-[#1F1E1D] border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-[#C96342]"
+          value={electricityReading}
+          onChangeText={setElectricityReading}
+          placeholder="Enter current electricity reading"
           placeholderTextColor="#9CA3AF"
           keyboardType="numeric"
         />

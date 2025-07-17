@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, TextInput, Modal } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView, Modal } from 'react-native';
 import { supabase } from '../lib/supabase';
-import { Tenant, TenantBillingCycle } from '../lib/types';
+import { Tenant, TenantBillingCycle, TenantPayment } from '../lib/types';
+import { DatePicker } from './DatePicker';
 
 interface TenantBillingCycleManagerProps {
   tenant: Tenant;
@@ -9,54 +10,58 @@ interface TenantBillingCycleManagerProps {
 }
 
 export function TenantBillingCycleManager({ tenant, onUpdate }: TenantBillingCycleManagerProps) {
-  const [currentCycle, setCurrentCycle] = useState<TenantBillingCycle | null>(null);
-  const [nextCycle, setNextCycle] = useState<TenantBillingCycle | null>(null);
+  const [billingCycles, setBillingCycles] = useState<TenantBillingCycle[]>([]);
+  const [payments, setPayments] = useState<TenantPayment[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showElectricityModal, setShowElectricityModal] = useState(false);
-  const [electricityBill, setElectricityBill] = useState('0');
+  const [showBillingModal, setShowBillingModal] = useState(false);
+  const [selectedCycle, setSelectedCycle] = useState<TenantBillingCycle | null>(null);
+  const [rentAmount, setRentAmount] = useState('');
+  const [electricityAmount, setElectricityAmount] = useState('');
+  const [useAdvanceAmount, setUseAdvanceAmount] = useState('');
+  const [balancePaymentAmount, setBalancePaymentAmount] = useState('');
+  const [paymentDate, setPaymentDate] = useState(new Date());
 
-  const fetchCurrentCycle = async () => {
+  const fetchBillingCycles = async () => {
     try {
-      const today = new Date();
       const { data, error } = await supabase
         .from('tenant_billing_cycles')
         .select('*')
         .eq('tenant_id', tenant.id)
-        .lte('cycle_start_date', today.toISOString().split('T')[0])
-        .gte('cycle_end_date', today.toISOString().split('T')[0])
-        .single();
+        .order('cycle_start_date', { ascending: false });
 
-      if (error && error.code !== 'PGRST116') throw error;
-      setCurrentCycle(data);
+      if (error) throw error;
+      setBillingCycles(data || []);
     } catch (error) {
-      console.error('Error fetching current cycle:', error);
+      console.error('Error fetching billing cycles:', error);
     }
   };
 
-  const fetchNextCycle = async () => {
+  const fetchPayments = async () => {
     try {
-      const today = new Date();
       const { data, error } = await supabase
-        .from('tenant_billing_cycles')
+        .from('tenant_payments')
         .select('*')
         .eq('tenant_id', tenant.id)
-        .gt('cycle_start_date', today.toISOString().split('T')[0])
-        .order('cycle_start_date', { ascending: true })
-        .limit(1)
-        .single();
+        .order('payment_date', { ascending: false });
 
-      if (error && error.code !== 'PGRST116') throw error;
-      setNextCycle(data);
+      if (error) throw error;
+      setPayments(data || []);
     } catch (error) {
-      console.error('Error fetching next cycle:', error);
+      console.error('Error fetching payments:', error);
     }
   };
+
+  useEffect(() => {
+    fetchBillingCycles();
+    fetchPayments();
+  }, [tenant.id]);
 
   const generateBillingCycles = async () => {
     setLoading(true);
     try {
       const bookingDate = new Date(tenant.booking_date);
       const today = new Date();
+      const dayOfMonth = bookingDate.getDate();
       const cycles = [];
 
       // Generate cycles from booking date to current date + 2 months
@@ -65,10 +70,8 @@ export function TenantBillingCycleManager({ tenant, onUpdate }: TenantBillingCyc
       endGenerationDate.setMonth(endGenerationDate.getMonth() + 2);
 
       while (currentDate <= endGenerationDate) {
-        const cycleStartDate = new Date(currentDate);
-        const cycleEndDate = new Date(currentDate);
-        cycleEndDate.setMonth(cycleEndDate.getMonth() + 1);
-        cycleEndDate.setDate(cycleEndDate.getDate() - 1);
+        const cycleStartDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), dayOfMonth);
+        const cycleEndDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, dayOfMonth - 1);
 
         // Check if cycle already exists
         const { data: existingCycle } = await supabase
@@ -82,9 +85,9 @@ export function TenantBillingCycleManager({ tenant, onUpdate }: TenantBillingCyc
             tenant_id: tenant.id,
             cycle_start_date: cycleStartDate.toISOString().split('T')[0],
             cycle_end_date: cycleEndDate.toISOString().split('T')[0],
-            rent_amount: tenant.room?.rent_amount || 0,
-            electricity_bill: 0,
-            total_amount: tenant.room?.rent_amount || 0,
+            rent_amount: 0,
+            electricity_amount: 0,
+            total_amount: 0,
             is_paid: false,
           });
         }
@@ -100,8 +103,7 @@ export function TenantBillingCycleManager({ tenant, onUpdate }: TenantBillingCyc
         if (error) throw error;
       }
 
-      await fetchCurrentCycle();
-      await fetchNextCycle();
+      await fetchBillingCycles();
       Alert.alert('Success', 'Billing cycles generated successfully');
     } catch (error) {
       console.error('Error generating billing cycles:', error);
@@ -111,229 +113,334 @@ export function TenantBillingCycleManager({ tenant, onUpdate }: TenantBillingCyc
     }
   };
 
-  const handlePayRent = async () => {
-    if (!currentCycle) return;
+  const handleBillingCyclePress = (cycle: TenantBillingCycle) => {
+    setSelectedCycle(cycle);
+    setRentAmount(cycle.rent_amount?.toString() || '');
+    setElectricityAmount(cycle.electricity_amount?.toString() || '');
+    setUseAdvanceAmount('');
+    setBalancePaymentAmount('');
+    setPaymentDate(new Date());
+    setShowBillingModal(true);
+  };
+
+  const handleBillingCycleUpdate = async () => {
+    if (!selectedCycle) return;
+
+    const rentNum = parseFloat(rentAmount) || 0;
+    const electricityNum = parseFloat(electricityAmount) || 0;
+    const useAdvanceNum = parseFloat(useAdvanceAmount) || 0;
+    const balancePaymentNum = parseFloat(balancePaymentAmount) || 0;
+
+    if (rentNum < 0 || electricityNum < 0 || useAdvanceNum < 0 || balancePaymentNum < 0) {
+      Alert.alert('Error', 'All amounts must be positive numbers');
+      return;
+    }
+
+    if (useAdvanceNum > tenant.advance_amount) {
+      Alert.alert('Error', 'Cannot use more advance than available');
+      return;
+    }
 
     setLoading(true);
     try {
-      const electricityAmount = parseFloat(electricityBill) || 0;
-      const totalAmount = currentCycle.rent_amount + electricityAmount;
+      const totalAmount = rentNum + electricityNum;
+      const amountFromAdvance = Math.min(useAdvanceNum, totalAmount);
+      const balanceOwed = totalAmount - amountFromAdvance;
+      const balancePayment = Math.min(balancePaymentNum, balanceOwed);
+      const finalBalance = balanceOwed - balancePayment;
 
-      const { error } = await supabase
+      // Update billing cycle
+      const { error: cycleError } = await supabase
         .from('tenant_billing_cycles')
         .update({
-          electricity_bill: electricityAmount,
+          rent_amount: rentNum,
+          electricity_amount: electricityNum,
           total_amount: totalAmount,
-          is_paid: true,
-          paid_date: new Date().toISOString().split('T')[0],
+          is_paid: finalBalance === 0
         })
-        .eq('id', currentCycle.id);
+        .eq('id', selectedCycle.id);
 
-      if (error) throw error;
+      if (cycleError) throw cycleError;
 
-      // Add payment record
-      await supabase
-        .from('tenant_payments')
-        .insert({
+      // Update tenant advance and balance
+      const newAdvanceAmount = tenant.advance_amount - amountFromAdvance;
+      const newBalanceAmount = tenant.balance_amount + finalBalance;
+
+      const { error: tenantError } = await supabase
+        .from('tenants')
+        .update({
+          advance_amount: newAdvanceAmount,
+          balance_amount: newBalanceAmount
+        })
+        .eq('id', tenant.id);
+
+      if (tenantError) throw tenantError;
+
+      // Record payment transactions
+      const paymentEntries = [];
+
+      // Record advance usage
+      if (amountFromAdvance > 0) {
+        paymentEntries.push({
           tenant_id: tenant.id,
-          payment_type: 'rent',
-          amount: totalAmount,
-          payment_date: new Date().toISOString().split('T')[0],
-          description: `Monthly rent for ${new Date(currentCycle.cycle_start_date).toLocaleDateString()} - ${new Date(currentCycle.cycle_end_date).toLocaleDateString()}`,
+          payment_type: 'advance',
+          amount: -amountFromAdvance,
+          payment_date: paymentDate.toISOString().split('T')[0],
+          description: `Advance used for billing cycle ${selectedCycle.cycle_start_date} to ${selectedCycle.cycle_end_date}`,
         });
+      }
 
-      Alert.alert('Success', 'Rent paid successfully');
-      setShowElectricityModal(false);
-      fetchCurrentCycle();
-      fetchNextCycle();
+      // Record balance payment
+      if (balancePayment > 0) {
+        paymentEntries.push({
+          tenant_id: tenant.id,
+          payment_type: 'balance',
+          amount: balancePayment,
+          payment_date: paymentDate.toISOString().split('T')[0],
+          description: `Balance payment for billing cycle ${selectedCycle.cycle_start_date} to ${selectedCycle.cycle_end_date}`,
+        });
+      }
+
+      // Record balance added (if any)
+      if (finalBalance > 0) {
+        paymentEntries.push({
+          tenant_id: tenant.id,
+          payment_type: 'balance',
+          amount: -finalBalance,
+          payment_date: paymentDate.toISOString().split('T')[0],
+          description: `Balance added for billing cycle ${selectedCycle.cycle_start_date} to ${selectedCycle.cycle_end_date}`,
+        });
+      }
+
+      if (paymentEntries.length > 0) {
+        const { error: paymentError } = await supabase
+          .from('tenant_payments')
+          .insert(paymentEntries);
+
+        if (paymentError) throw paymentError;
+      }
+
+      Alert.alert('Success', 'Billing cycle updated successfully');
+      setShowBillingModal(false);
+      setSelectedCycle(null);
+      fetchBillingCycles();
+      fetchPayments();
       onUpdate();
     } catch (error) {
-      console.error('Error paying rent:', error);
-      Alert.alert('Error', 'Failed to pay rent');
+      console.error('Error updating billing cycle:', error);
+      Alert.alert('Error', 'Failed to update billing cycle');
     } finally {
       setLoading(false);
     }
   };
 
-  const getDaysUntilNextBilling = () => {
-    if (!nextCycle) return null;
+  const getCycleStatus = (cycle: TenantBillingCycle) => {
     const today = new Date();
-    const nextBillingDate = new Date(nextCycle.cycle_start_date);
-    const diffTime = nextBillingDate.getTime() - today.getTime();
+    const cycleEnd = new Date(cycle.cycle_end_date);
+    const diffTime = cycleEnd.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
+
+    if (cycle.is_paid) return { text: 'Paid', color: 'text-green-400' };
+    if (diffDays < 0) return { text: 'Overdue', color: 'text-red-400' };
+    if (diffDays <= 3) return { text: `${diffDays} days left`, color: 'text-yellow-400' };
+    return { text: `${diffDays} days left`, color: 'text-blue-400' };
   };
 
-  const getDaysLeftInCurrentCycle = () => {
-    if (!currentCycle) return null;
-    const today = new Date();
-    const cycleEndDate = new Date(currentCycle.cycle_end_date);
-    const diffTime = cycleEndDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return Math.max(0, diffDays);
-  };
-
-  useEffect(() => {
-    fetchCurrentCycle();
-    fetchNextCycle();
-  }, [tenant.id]);
+  const totalAmount = selectedCycle ? (parseFloat(rentAmount) || 0) + (parseFloat(electricityAmount) || 0) : 0;
+  const useAdvanceNum = parseFloat(useAdvanceAmount) || 0;
+  const balancePaymentNum = parseFloat(balancePaymentAmount) || 0;
+  const amountFromAdvance = Math.min(useAdvanceNum, totalAmount);
+  const balanceOwed = totalAmount - amountFromAdvance;
+  const balancePayment = Math.min(balancePaymentNum, balanceOwed);
+  const finalBalance = balanceOwed - balancePayment;
 
   return (
-    <View className="bg-[#262624] rounded-lg p-4 border border-gray-700">
+    <ScrollView className="bg-[#262624] rounded-lg p-4 border border-gray-700" showsVerticalScrollIndicator={false}>
       <View className="flex-row justify-between items-center mb-4">
-        <Text className="text-lg font-semibold text-white">Billing Cycle</Text>
-        <TouchableOpacity
-          className="bg-blue-600 rounded-lg px-4 py-2"
-          onPress={generateBillingCycles}
-          disabled={loading}
-        >
-          <Text className="text-white font-semibold">
-            {loading ? 'Generating...' : 'Generate Cycles'}
-          </Text>
-        </TouchableOpacity>
+        <Text className="text-lg font-semibold text-white">Billing Cycles</Text>
+        <View className="flex-row space-x-2">
+          <TouchableOpacity
+            className="bg-blue-600 rounded-lg px-4 py-2"
+            onPress={generateBillingCycles}
+            disabled={loading}
+          >
+            <Text className="text-white font-semibold">
+              {loading ? 'Generating...' : 'Generate Cycles'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Current Cycle */}
-      {currentCycle ? (
-        <View className="bg-[#1F1E1D] rounded-lg p-4 mb-4">
-          <Text className="text-white font-semibold mb-2">Current Billing Cycle</Text>
-          <View className="flex-row justify-between items-center mb-2">
-            <Text className="text-gray-300">
-              {new Date(currentCycle.cycle_start_date).toLocaleDateString()} - {new Date(currentCycle.cycle_end_date).toLocaleDateString()}
-            </Text>
-            <View className={`px-2 py-1 rounded-full ${
-              currentCycle.is_paid ? 'bg-green-800/20' : 'bg-red-800/20'
-            }`}>
-              <Text className={`text-xs font-medium ${
-                currentCycle.is_paid ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {currentCycle.is_paid ? 'Paid' : 'Unpaid'}
-              </Text>
-            </View>
-          </View>
-          
-          <View className="flex-row justify-between items-center mb-2">
-            <Text className="text-gray-300">Rent Amount:</Text>
-            <Text className="text-white">₹{currentCycle.rent_amount.toLocaleString()}</Text>
-          </View>
-          
-          {currentCycle.electricity_bill > 0 && (
-            <View className="flex-row justify-between items-center mb-2">
-              <Text className="text-gray-300">Electricity Bill:</Text>
-              <Text className="text-white">₹{currentCycle.electricity_bill.toLocaleString()}</Text>
-            </View>
-          )}
-          
-          <View className="flex-row justify-between items-center pt-2 border-t border-gray-600">
-            <Text className="text-gray-300 font-semibold">Total Amount:</Text>
-            <Text className="text-white font-semibold">₹{currentCycle.total_amount.toLocaleString()}</Text>
-          </View>
-
-          {getDaysLeftInCurrentCycle() !== null && (
-            <Text className="text-gray-400 text-sm mt-2">
-              {getDaysLeftInCurrentCycle()} days left in current cycle
-            </Text>
-          )}
-
-          {!currentCycle.is_paid && (
-            <TouchableOpacity
-              className="bg-[#C96342] rounded-lg py-2 mt-3"
-              onPress={() => setShowElectricityModal(true)}
-              disabled={loading}
-            >
-              <Text className="text-white font-semibold text-center">
-                Pay Rent
-              </Text>
-            </TouchableOpacity>
-          )}
+      {/* Advance/Balance Summary */}
+      <View className="flex-row space-x-2 mb-4">
+        <View className="flex-1 bg-[#1F1E1D] rounded-lg p-3">
+          <Text className="text-gray-300 text-sm">Advance</Text>
+          <Text className="text-green-400 font-semibold text-lg">₹{tenant.advance_amount.toLocaleString()}</Text>
         </View>
+        <View className="flex-1 bg-[#1F1E1D] rounded-lg p-3">
+          <Text className="text-gray-300 text-sm">Balance</Text>
+          <Text className="text-red-400 font-semibold text-lg">₹{tenant.balance_amount.toLocaleString()}</Text>
+        </View>
+      </View>
+
+      {billingCycles.length === 0 ? (
+        <Text className="text-gray-400 text-center py-4">
+          No billing cycles found. Generate billing cycles to get started.
+        </Text>
       ) : (
-        <View className="bg-[#1F1E1D] rounded-lg p-4 mb-4">
-          <Text className="text-gray-400 text-center">
-            No current billing cycle found. Generate cycles to start billing.
-          </Text>
+        <View className="space-y-2">
+          {billingCycles.map((cycle) => {
+            const status = getCycleStatus(cycle);
+            return (
+              <TouchableOpacity
+                key={cycle.id}
+                className="bg-[#1F1E1D] rounded-lg p-3"
+                onPress={() => handleBillingCyclePress(cycle)}
+              >
+                <View className="flex-row justify-between items-start">
+                  <View className="flex-1">
+                    <Text className="text-white font-medium">
+                      {new Date(cycle.cycle_start_date).toLocaleDateString()} - {new Date(cycle.cycle_end_date).toLocaleDateString()}
+                    </Text>
+                    <Text className="text-gray-400 text-sm mt-1">
+                      Rent: ₹{cycle.rent_amount?.toLocaleString() || 0} | 
+                      Electricity: ₹{cycle.electricity_amount?.toLocaleString() || 0}
+                    </Text>
+                    <Text className="text-gray-300 text-sm mt-1">
+                      Total: ₹{cycle.total_amount?.toLocaleString() || 0}
+                    </Text>
+                  </View>
+                  <View className="items-end">
+                    <Text className={`text-sm font-medium ${status.color}`}>
+                      {status.text}
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       )}
 
-      {/* Next Billing Countdown */}
-      {nextCycle && getDaysUntilNextBilling() !== null && (
-        <View className="bg-[#1F1E1D] rounded-lg p-4">
-          <Text className="text-white font-semibold mb-2">Next Billing</Text>
-          <View className="flex-row justify-between items-center">
-            <Text className="text-gray-300">
-              {new Date(nextCycle.cycle_start_date).toLocaleDateString()}
-            </Text>
-            <Text className="text-orange-400 font-semibold">
-              {getDaysUntilNextBilling()} days left
-            </Text>
-          </View>
-        </View>
-      )}
-
-      {/* Electricity Bill Modal */}
+      {/* Billing Cycle Modal */}
       <Modal
-        visible={showElectricityModal}
+        visible={showBillingModal}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setShowElectricityModal(false)}
+        onRequestClose={() => setShowBillingModal(false)}
       >
         <View className="flex-1 justify-center items-center bg-black/50">
-          <View className="bg-[#262624] rounded-lg p-6 w-80 border border-gray-600">
-            <Text className="text-white text-lg font-semibold mb-4">
-              Pay Rent
-            </Text>
-            
-            <View className="mb-4">
-              <Text className="text-gray-300 mb-2">Electricity Bill Amount (₹)</Text>
-              <TextInput
-                className="bg-[#1F1E1D] text-white border border-gray-600 rounded-lg px-3 py-2"
-                value={electricityBill}
-                onChangeText={setElectricityBill}
-                placeholder="Enter electricity bill amount"
-                placeholderTextColor="#9CA3AF"
-                keyboardType="numeric"
-              />
-            </View>
-            
-            {currentCycle && (
-              <View className="mb-4 p-3 bg-[#1F1E1D] rounded-lg">
-                <View className="flex-row justify-between mb-2">
-                  <Text className="text-gray-300">Rent Amount:</Text>
-                  <Text className="text-white">₹{currentCycle.rent_amount.toLocaleString()}</Text>
-                </View>
-                <View className="flex-row justify-between mb-2">
-                  <Text className="text-gray-300">Electricity Bill:</Text>
-                  <Text className="text-white">₹{(parseFloat(electricityBill) || 0).toLocaleString()}</Text>
-                </View>
-                <View className="flex-row justify-between pt-2 border-t border-gray-600">
-                  <Text className="text-white font-semibold">Total Amount:</Text>
-                  <Text className="text-white font-semibold">₹{(currentCycle.rent_amount + (parseFloat(electricityBill) || 0)).toLocaleString()}</Text>
-                </View>
-              </View>
-            )}
-            
-            <View className="flex-row space-x-3">
-              <TouchableOpacity
-                className="flex-1 bg-[#C96342] rounded-lg py-3"
-                onPress={handlePayRent}
-                disabled={loading}
-              >
-                <Text className="text-white font-semibold text-center">
-                  {loading ? 'Paying...' : 'Pay Rent'}
-                </Text>
-              </TouchableOpacity>
+          <View className="bg-[#262624] rounded-lg p-6 w-80 max-h-[90%] border border-gray-600">
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text className="text-white text-lg font-semibold mb-4">
+                Update Billing Cycle
+              </Text>
               
-              <TouchableOpacity
-                className="flex-1 bg-gray-600 rounded-lg py-3"
-                onPress={() => setShowElectricityModal(false)}
-                disabled={loading}
-              >
-                <Text className="text-white font-semibold text-center">Cancel</Text>
-              </TouchableOpacity>
-            </View>
+              {selectedCycle && (
+                <View className="mb-4 p-3 bg-[#1F1E1D] rounded-lg">
+                  <Text className="text-gray-300 text-sm">
+                    {new Date(selectedCycle.cycle_start_date).toLocaleDateString()} - {new Date(selectedCycle.cycle_end_date).toLocaleDateString()}
+                  </Text>
+                </View>
+              )}
+
+              <View className="mb-4">
+                <Text className="text-gray-300 mb-2">Rent Amount (₹)</Text>
+                <TextInput
+                  className="bg-[#1F1E1D] text-white border border-gray-600 rounded-lg px-3 py-2"
+                  value={rentAmount}
+                  onChangeText={setRentAmount}
+                  placeholder="Enter rent amount"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View className="mb-4">
+                <Text className="text-gray-300 mb-2">Electricity Amount (₹)</Text>
+                <TextInput
+                  className="bg-[#1F1E1D] text-white border border-gray-600 rounded-lg px-3 py-2"
+                  value={electricityAmount}
+                  onChangeText={setElectricityAmount}
+                  placeholder="Enter electricity amount"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View className="mb-4 p-3 bg-[#1F1E1D] rounded-lg">
+                <Text className="text-gray-300 text-sm mb-1">Total Amount</Text>
+                <Text className="text-white font-semibold text-lg">₹{totalAmount.toLocaleString()}</Text>
+              </View>
+
+              <View className="mb-4">
+                <Text className="text-gray-300 mb-2">Use Advance Amount (₹)</Text>
+                <Text className="text-gray-400 text-xs mb-1">Available: ₹{tenant.advance_amount.toLocaleString()}</Text>
+                <TextInput
+                  className="bg-[#1F1E1D] text-white border border-gray-600 rounded-lg px-3 py-2"
+                  value={useAdvanceAmount}
+                  onChangeText={setUseAdvanceAmount}
+                  placeholder="Enter advance amount to use"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View className="mb-4">
+                <Text className="text-gray-300 mb-2">Balance Payment (₹)</Text>
+                <Text className="text-gray-400 text-xs mb-1">Amount owed: ₹{balanceOwed.toLocaleString()}</Text>
+                <TextInput
+                  className="bg-[#1F1E1D] text-white border border-gray-600 rounded-lg px-3 py-2"
+                  value={balancePaymentAmount}
+                  onChangeText={setBalancePaymentAmount}
+                  placeholder="Enter balance payment amount"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View className="mb-4 p-3 bg-[#1F1E1D] rounded-lg">
+                <Text className="text-gray-300 text-sm mb-2">Payment Summary</Text>
+                <Text className="text-white text-sm">Total Amount: ₹{totalAmount.toLocaleString()}</Text>
+                <Text className="text-green-400 text-sm">From Advance: ₹{amountFromAdvance.toLocaleString()}</Text>
+                <Text className="text-blue-400 text-sm">Balance Payment: ₹{balancePayment.toLocaleString()}</Text>
+                <Text className={`text-sm font-semibold ${finalBalance > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                  {finalBalance > 0 ? `Remaining Balance: ₹${finalBalance.toLocaleString()}` : 'Fully Paid'}
+                </Text>
+              </View>
+
+              <View className="mb-6">
+                <Text className="text-gray-300 mb-2">Payment Date</Text>
+                <DatePicker
+                  value={paymentDate}
+                  onChange={setPaymentDate}
+                  placeholder="Select payment date"
+                />
+              </View>
+
+              <View className="flex-row space-x-3">
+                <TouchableOpacity
+                  className="flex-1 bg-[#C96342] rounded-lg py-3"
+                  onPress={handleBillingCycleUpdate}
+                  disabled={loading}
+                >
+                  <Text className="text-white font-semibold text-center">
+                    {loading ? 'Updating...' : 'Update Cycle'}
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  className="flex-1 bg-gray-600 rounded-lg py-3"
+                  onPress={() => setShowBillingModal(false)}
+                  disabled={loading}
+                >
+                  <Text className="text-white font-semibold text-center">Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   );
 }
