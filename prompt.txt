@@ -1,3 +1,1 @@
-1. when we add tenant we'll take first electricity bill reading
-2. then advance and balance also keep track. 
-3. Rent page we can just show overdue, balance amount but for accepting we have to go to tenant rent page. 
+1. dont give edit option on tent --> to edit advance and balance this will create trouble. remove this edit from everywhere. 

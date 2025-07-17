@@ -5,13 +5,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
 import { useAuth } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
-import { Property, Room, Tenant, RentCollection, PropertyExpense } from '../../lib/types';
+import { Property, Room, Tenant, RentCollection, PropertyExpense, TenantPayment } from '../../lib/types';
 
 export default function DashboardScreen() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [rentCollections, setRentCollections] = useState<RentCollection[]>([]);
+  const [tenantPayments, setTenantPayments] = useState<TenantPayment[]>([]);
   const [expenses, setExpenses] = useState<PropertyExpense[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly');
@@ -41,7 +42,7 @@ export default function DashboardScreen() {
       console.log('Fetching dashboard data...');
       const { start, end } = getDateRange();
       
-      const [propertiesResult, roomsResult, tenantsResult, rentCollectionsResult, expensesResult] = await Promise.all([
+      const [propertiesResult, roomsResult, tenantsResult, rentCollectionsResult, tenantPaymentsResult, expensesResult] = await Promise.all([
         supabase
           .from('properties')
           .select('*')
@@ -54,6 +55,12 @@ export default function DashboardScreen() {
           .gte('collected_date', start)
           .lte('collected_date', end)
           .eq('is_collected', true),
+        supabase
+          .from('tenant_payments')
+          .select('*')
+          .gte('payment_date', start.split('T')[0])
+          .lte('payment_date', end.split('T')[0])
+          .gt('amount', 0),
         supabase
           .from('property_expenses')
           .select('*')
@@ -77,6 +84,10 @@ export default function DashboardScreen() {
         console.error('Rent collections error:', rentCollectionsResult.error);
         throw rentCollectionsResult.error;
       }
+      if (tenantPaymentsResult.error) {
+        console.error('Tenant payments error:', tenantPaymentsResult.error);
+        throw tenantPaymentsResult.error;
+      }
       if (expensesResult.error) {
         console.error('Expenses error:', expensesResult.error);
         throw expensesResult.error;
@@ -87,6 +98,7 @@ export default function DashboardScreen() {
         rooms: roomsResult.data?.length || 0,
         tenants: tenantsResult.data?.length || 0,
         rentCollections: rentCollectionsResult.data?.length || 0,
+        tenantPayments: tenantPaymentsResult.data?.length || 0,
         expenses: expensesResult.data?.length || 0
       });
 
@@ -94,6 +106,7 @@ export default function DashboardScreen() {
       setRooms(roomsResult.data || []);
       setTenants(tenantsResult.data || []);
       setRentCollections(rentCollectionsResult.data || []);
+      setTenantPayments(tenantPaymentsResult.data || []);
       setExpenses(expensesResult.data || []);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -124,8 +137,10 @@ export default function DashboardScreen() {
   const occupiedRooms = rooms.filter((room) => room.is_occupied).length;
   const totalRooms = rooms.length;
   const totalIncome = rentCollections.reduce((sum, collection) => sum + collection.total_amount, 0);
+  const totalPayments = tenantPayments.reduce((sum, payment) => sum + payment.amount, 0);
+  const totalRevenue = totalIncome + totalPayments;
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const profitLoss = totalIncome - totalExpenses;
+  const profitLoss = totalRevenue - totalExpenses;
   
   const getTimeRangeLabel = () => {
     switch (timeRange) {
@@ -206,7 +221,7 @@ export default function DashboardScreen() {
             <View className='bg-[#1F1E1D] rounded-lg p-4'>
               <Text className='text-gray-300 mb-1'>Total Income</Text>
               <Text className='text-2xl font-bold text-green-400'>
-                ₹{totalIncome.toLocaleString()}
+                ₹{totalRevenue.toLocaleString()}
               </Text>
             </View>
             
