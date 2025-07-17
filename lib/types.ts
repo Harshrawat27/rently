@@ -76,6 +76,33 @@ export interface PropertyExpense {
   room?: Room;
 }
 
+export interface TenantPayment {
+  id: string;
+  tenant_id: string;
+  payment_type: 'advance' | 'balance' | 'rent';
+  amount: number;
+  payment_date: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+  tenant?: Tenant;
+}
+
+export interface TenantBillingCycle {
+  id: string;
+  tenant_id: string;
+  cycle_start_date: string;
+  cycle_end_date: string;
+  rent_amount: number;
+  electricity_bill: number;
+  total_amount: number;
+  is_paid: boolean;
+  paid_date?: string;
+  created_at: string;
+  updated_at: string;
+  tenant?: Tenant;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -108,6 +135,16 @@ export interface Database {
         Row: PropertyExpense;
         Insert: Omit<PropertyExpense, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<PropertyExpense, 'id' | 'created_at' | 'updated_at'>>;
+      };
+      tenant_payments: {
+        Row: TenantPayment;
+        Insert: Omit<TenantPayment, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<TenantPayment, 'id' | 'created_at' | 'updated_at'>>;
+      };
+      tenant_billing_cycles: {
+        Row: TenantBillingCycle;
+        Insert: Omit<TenantBillingCycle, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<TenantBillingCycle, 'id' | 'created_at' | 'updated_at'>>;
       };
     };
   };

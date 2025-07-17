@@ -7,6 +7,8 @@ import { Tenant, ElectricMeterReading } from '../lib/types';
 import { MeterReadingCard } from '../components/MeterReadingCard';
 import { AddMeterReadingForm } from '../components/AddMeterReadingForm';
 import { EditTenantForm } from '../components/EditTenantForm';
+import { TenantPaymentManager } from '../components/TenantPaymentManager';
+import { TenantBillingCycleManager } from '../components/TenantBillingCycleManager';
 import { Header } from '../components/Header';
 import { DismissibleKeyboardView } from '../components/DismissibleKeyboardView';
 
@@ -68,6 +70,8 @@ export default function TenantDetailsScreen() {
   };
 
   const handleArchiveTenant = async () => {
+    if (!tenant) return;
+    
     Alert.alert(
       'Archive Tenant',
       'Are you sure you want to archive this tenant? This will mark the room as available.',
@@ -236,6 +240,20 @@ export default function TenantDetailsScreen() {
                   />
                 </View>
               )}
+
+              <View className="mb-6">
+                <TenantPaymentManager
+                  tenant={tenant}
+                  onUpdate={fetchTenantDetails}
+                />
+              </View>
+
+              <View className="mb-6">
+                <TenantBillingCycleManager
+                  tenant={tenant}
+                  onUpdate={fetchTenantDetails}
+                />
+              </View>
 
               <Text className="text-xl font-bold text-white mb-4">Meter Readings</Text>
 

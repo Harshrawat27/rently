@@ -14,16 +14,60 @@ export default function RentCollectionsScreen() {
 
   const fetchRentCollections = async () => {
     try {
+      if (!user?.id) {
+        setRentCollections([]);
+        return;
+      }
+
+      // First get all properties for the user
+      const { data: userProperties, error: propertiesError } = await supabase
+        .from('properties')
+        .select('id')
+        .eq('user_id', user.id);
+
+      if (propertiesError) throw propertiesError;
+
+      if (!userProperties || userProperties.length === 0) {
+        setRentCollections([]);
+        return;
+      }
+
+      const propertyIds = userProperties.map(p => p.id);
+
+      // Get all rooms for these properties
+      const { data: userRooms, error: roomsError } = await supabase
+        .from('rooms')
+        .select('id')
+        .in('property_id', propertyIds);
+
+      if (roomsError) throw roomsError;
+
+      if (!userRooms || userRooms.length === 0) {
+        setRentCollections([]);
+        return;
+      }
+
+      const roomIds = userRooms.map(r => r.id);
+
+      // Get rent collections for these rooms
       const { data, error } = await supabase
         .from('rent_collections')
-        .select(
-          `
+        .select(`
           *,
-          tenant:tenants(*),
-          room:rooms(*)
-        `
-        )
-        .eq('tenant.room.property.user_id', user?.id)
+          tenant:tenants(
+            id,
+            name,
+            phone_number,
+            room_id
+          ),
+          room:rooms(
+            id,
+            room_number,
+            rent_amount,
+            property_id
+          )
+        `)
+        .in('room_id', roomIds)
         .order('due_date', { ascending: false });
 
       if (error) throw error;
@@ -40,17 +84,52 @@ export default function RentCollectionsScreen() {
     try {
       setLoading(true);
 
-      // Get all active tenants
+      if (!user?.id) {
+        return;
+      }
+
+      // First get all properties for the user
+      const { data: userProperties, error: propertiesError } = await supabase
+        .from('properties')
+        .select('id')
+        .eq('user_id', user.id);
+
+      if (propertiesError) throw propertiesError;
+
+      if (!userProperties || userProperties.length === 0) {
+        return;
+      }
+
+      const propertyIds = userProperties.map(p => p.id);
+
+      // Get all rooms for these properties
+      const { data: userRooms, error: roomsError } = await supabase
+        .from('rooms')
+        .select('id')
+        .in('property_id', propertyIds);
+
+      if (roomsError) throw roomsError;
+
+      if (!userRooms || userRooms.length === 0) {
+        return;
+      }
+
+      const roomIds = userRooms.map(r => r.id);
+
+      // Get all active tenants for these rooms with room information
       const { data: tenants, error: tenantsError } = await supabase
         .from('tenants')
-        .select(
-          `
+        .select(`
           *,
-          room:rooms(*)
-        `
-        )
+          room:rooms(
+            id,
+            room_number,
+            rent_amount,
+            property_id
+          )
+        `)
         .eq('is_active', true)
-        .eq('room.property.user_id', user?.id);
+        .in('room_id', roomIds);
 
       if (tenantsError) throw tenantsError;
 

@@ -12,13 +12,11 @@ export const AddTenantForm: React.FC<AddTenantFormProps> = ({ roomId, onTenantAd
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [bookingDate, setBookingDate] = useState('');
-  const [advanceAmount, setAdvanceAmount] = useState('');
-  const [balanceAmount, setBalanceAmount] = useState('');
   const [numberOfPersons, setNumberOfPersons] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!name.trim() || !phoneNumber.trim() || !bookingDate || !advanceAmount || !balanceAmount || !numberOfPersons) {
+    if (!name.trim() || !phoneNumber.trim() || !bookingDate || !numberOfPersons) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
@@ -35,19 +33,7 @@ export const AddTenantForm: React.FC<AddTenantFormProps> = ({ roomId, onTenantAd
       return;
     }
 
-    const advance = parseFloat(advanceAmount);
-    const balance = parseFloat(balanceAmount);
     const persons = parseInt(numberOfPersons);
-
-    if (isNaN(advance) || advance < 0) {
-      Alert.alert('Error', 'Please enter a valid advance amount');
-      return;
-    }
-
-    if (isNaN(balance) || balance < 0) {
-      Alert.alert('Error', 'Please enter a valid balance amount');
-      return;
-    }
 
     if (isNaN(persons) || persons <= 0) {
       Alert.alert('Error', 'Please enter a valid number of persons');
@@ -63,8 +49,8 @@ export const AddTenantForm: React.FC<AddTenantFormProps> = ({ roomId, onTenantAd
           name: name.trim(),
           phone_number: phoneNumber.trim(),
           booking_date: bookingDate,
-          advance_amount: advance,
-          balance_amount: balance,
+          advance_amount: 0, // Default to 0, will be managed separately
+          balance_amount: 0, // Default to 0, will be managed separately
           number_of_persons: persons
         }]);
 
@@ -77,12 +63,10 @@ export const AddTenantForm: React.FC<AddTenantFormProps> = ({ roomId, onTenantAd
 
       if (roomError) throw roomError;
 
-      Alert.alert('Success', 'Tenant added successfully');
+      Alert.alert('Success', 'Tenant added successfully. You can now manage advance and balance payments from the tenant details page.');
       setName('');
       setPhoneNumber('');
       setBookingDate('');
-      setAdvanceAmount('');
-      setBalanceAmount('');
       setNumberOfPersons('');
       onTenantAdded();
     } catch (error) {
@@ -127,30 +111,6 @@ export const AddTenantForm: React.FC<AddTenantFormProps> = ({ roomId, onTenantAd
         placeholder="Select booking date"
         required
       />
-
-      <View className="mb-4">
-        <Text className="text-white mb-2 font-medium">Advance Amount *</Text>
-        <TextInput
-          className="bg-[#1F1E1D] border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-[#C96342]"
-          value={advanceAmount}
-          onChangeText={setAdvanceAmount}
-          placeholder="Enter advance amount"
-          placeholderTextColor="#9CA3AF"
-          keyboardType="numeric"
-        />
-      </View>
-
-      <View className="mb-4">
-        <Text className="text-white mb-2 font-medium">Balance Amount *</Text>
-        <TextInput
-          className="bg-[#1F1E1D] border border-gray-600 rounded-lg px-4 py-3 text-white focus:border-[#C96342]"
-          value={balanceAmount}
-          onChangeText={setBalanceAmount}
-          placeholder="Enter balance amount"
-          placeholderTextColor="#9CA3AF"
-          keyboardType="numeric"
-        />
-      </View>
 
       <View className="mb-6">
         <Text className="text-white mb-2 font-medium">Number of Persons *</Text>
