@@ -79,7 +79,7 @@ export interface PropertyExpense {
 export interface TenantPayment {
   id: string;
   tenant_id: string;
-  payment_type: 'advance' | 'balance' | 'rent';
+  payment_type: 'advance' | 'balance' | 'rent' | 'cycle';
   amount: number;
   payment_date: string;
   description?: string;

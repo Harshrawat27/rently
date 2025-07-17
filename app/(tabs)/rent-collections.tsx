@@ -211,7 +211,7 @@ export default function RentCollectionsScreen() {
             cycle_end_date: currentCycleEnd.toISOString().split('T')[0],
             is_paid: false,
             total_amount: 0,
-            electricity_amount: 0,
+            electricity_bill: 0,
             rent_amount: 0,
           });
         }
@@ -243,7 +243,7 @@ export default function RentCollectionsScreen() {
             cycle_end_date: nextCycleEnd.toISOString().split('T')[0],
             is_paid: false,
             total_amount: 0,
-            electricity_amount: 0,
+            electricity_bill: 0,
             rent_amount: 0,
           });
         }

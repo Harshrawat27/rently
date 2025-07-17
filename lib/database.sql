@@ -80,7 +80,7 @@ CREATE TABLE property_expenses (
 CREATE TABLE tenant_payments (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
-    payment_type VARCHAR(20) NOT NULL CHECK (payment_type IN ('advance', 'balance', 'rent')),
+    payment_type VARCHAR(20) NOT NULL CHECK (payment_type IN ('advance', 'balance', 'rent', 'cycle')),
     amount DECIMAL(10,2) NOT NULL,
     payment_date DATE NOT NULL,
     description TEXT,
