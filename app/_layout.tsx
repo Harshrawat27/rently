@@ -35,6 +35,7 @@ export default function RootLayout() {
             <Stack.Screen name='property-details' options={{ headerShown: false }} />
             <Stack.Screen name='room-details' options={{ headerShown: false }} />
             <Stack.Screen name='tenant-details' options={{ headerShown: false }} />
+            <Stack.Screen name='property-expenses' options={{ headerShown: false }} />
             <Stack.Screen name='+not-found' />
           </Stack>
         </AuthWrapper>

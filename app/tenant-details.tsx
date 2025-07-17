@@ -160,7 +160,7 @@ export default function TenantDetailsScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-[#1F1E1D]">
+    <SafeAreaView className="flex-1 bg-[#1F1E1D]" edges={['top']}>
       <DismissibleKeyboardView className="flex-1">
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -175,6 +175,7 @@ export default function TenantDetailsScreen() {
             className="flex-1"
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 20 }}
           >
             <View className="px-4 py-6">
               <View className="bg-[#262624] rounded-lg p-6 mb-6 border border-gray-700">

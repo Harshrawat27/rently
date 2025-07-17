@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Alert, ScrollView, Modal } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
 import { supabase } from '../lib/supabase';
 import { Tenant, TenantPayment } from '../lib/types';
 import { DatePicker } from './DatePicker';
@@ -13,9 +12,11 @@ interface TenantPaymentManagerProps {
 export function TenantPaymentManager({ tenant, onUpdate }: TenantPaymentManagerProps) {
   const [payments, setPayments] = useState<TenantPayment[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showAddPayment, setShowAddPayment] = useState(false);
-  const [paymentType, setPaymentType] = useState<'advance' | 'balance'>('advance');
-  const [amount, setAmount] = useState('');
+  const [showSetInitialAmount, setShowSetInitialAmount] = useState(false);
+  const [showBalancePayment, setShowBalancePayment] = useState(false);
+  const [advanceAmount, setAdvanceAmount] = useState('');
+  const [balanceAmount, setBalanceAmount] = useState('');
+  const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date());
   const [description, setDescription] = useState('');
 
@@ -38,109 +39,175 @@ export function TenantPaymentManager({ tenant, onUpdate }: TenantPaymentManagerP
     fetchPayments();
   }, [tenant.id]);
 
-  const handleAddPayment = async () => {
-    if (!amount.trim()) {
-      Alert.alert('Error', 'Please enter amount');
+  const handleSetInitialAmounts = async () => {
+    if (!advanceAmount.trim() || !balanceAmount.trim()) {
+      Alert.alert('Error', 'Please enter both advance and balance amounts');
       return;
     }
 
-    const amountNum = parseFloat(amount);
-    if (isNaN(amountNum) || amountNum <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount');
+    const advanceNum = parseFloat(advanceAmount);
+    const balanceNum = parseFloat(balanceAmount);
+
+    if (isNaN(advanceNum) || advanceNum < 0) {
+      Alert.alert('Error', 'Please enter a valid advance amount');
+      return;
+    }
+
+    if (isNaN(balanceNum) || balanceNum < 0) {
+      Alert.alert('Error', 'Please enter a valid balance amount');
       return;
     }
 
     setLoading(true);
     try {
-      // Add payment to tenant_payments table
-      const { error: paymentError } = await supabase
-        .from('tenant_payments')
-        .insert({
-          tenant_id: tenant.id,
-          payment_type: paymentType,
-          amount: amountNum,
-          payment_date: paymentDate.toISOString().split('T')[0],
-          description: description.trim() || null,
-        });
-
-      if (paymentError) throw paymentError;
-
-      // Update tenant's advance/balance amount
-      const currentAdvance = tenant.advance_amount;
-      const currentBalance = tenant.balance_amount;
-      
-      let newAdvance = currentAdvance;
-      let newBalance = currentBalance;
-
-      if (paymentType === 'advance') {
-        newAdvance = currentAdvance + amountNum;
-      } else {
-        newBalance = Math.max(0, currentBalance - amountNum);
+      // Add advance payment log
+      if (advanceNum > 0) {
+        await supabase
+          .from('tenant_payments')
+          .insert({
+            tenant_id: tenant.id,
+            payment_type: 'advance',
+            amount: advanceNum,
+            payment_date: paymentDate.toISOString().split('T')[0],
+            description: 'Initial advance amount set',
+          });
       }
 
-      const { error: updateError } = await supabase
+      // Add balance log (negative amount to show it's owed)
+      if (balanceNum > 0) {
+        await supabase
+          .from('tenant_payments')
+          .insert({
+            tenant_id: tenant.id,
+            payment_type: 'balance',
+            amount: -balanceNum, // Negative to show it's owed
+            payment_date: paymentDate.toISOString().split('T')[0],
+            description: 'Initial balance amount set',
+          });
+      }
+
+      // Update tenant record
+      await supabase
         .from('tenants')
         .update({
-          advance_amount: newAdvance,
-          balance_amount: newBalance,
+          advance_amount: advanceNum,
+          balance_amount: balanceNum,
         })
         .eq('id', tenant.id);
 
-      if (updateError) throw updateError;
-
-      Alert.alert('Success', 'Payment added successfully');
-      setAmount('');
-      setDescription('');
+      Alert.alert('Success', 'Initial amounts set successfully');
+      setAdvanceAmount('');
+      setBalanceAmount('');
       setPaymentDate(new Date());
-      setShowAddPayment(false);
+      setShowSetInitialAmount(false);
       fetchPayments();
       onUpdate();
     } catch (error) {
-      console.error('Error adding payment:', error);
-      Alert.alert('Error', 'Failed to add payment');
+      console.error('Error setting initial amounts:', error);
+      Alert.alert('Error', 'Failed to set initial amounts');
     } finally {
       setLoading(false);
     }
   };
 
-  const getTotalAdvance = () => {
-    return payments
-      .filter(p => p.payment_type === 'advance')
-      .reduce((sum, p) => sum + p.amount, 0);
-  };
+  const handleBalancePayment = async () => {
+    if (!paymentAmount.trim()) {
+      Alert.alert('Error', 'Please enter payment amount');
+      return;
+    }
 
-  const getTotalBalance = () => {
-    return payments
-      .filter(p => p.payment_type === 'balance')
-      .reduce((sum, p) => sum + p.amount, 0);
+    const paymentNum = parseFloat(paymentAmount);
+    if (isNaN(paymentNum) || paymentNum <= 0) {
+      Alert.alert('Error', 'Please enter a valid payment amount');
+      return;
+    }
+
+    if (paymentNum > tenant.balance_amount) {
+      Alert.alert('Error', 'Payment amount cannot exceed current balance');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Add payment log
+      await supabase
+        .from('tenant_payments')
+        .insert({
+          tenant_id: tenant.id,
+          payment_type: 'balance',
+          amount: paymentNum,
+          payment_date: paymentDate.toISOString().split('T')[0],
+          description: description.trim() || 'Balance payment',
+        });
+
+      // Update tenant balance
+      const newBalance = tenant.balance_amount - paymentNum;
+      await supabase
+        .from('tenants')
+        .update({
+          balance_amount: newBalance,
+        })
+        .eq('id', tenant.id);
+
+      Alert.alert('Success', 'Balance payment recorded successfully');
+      setPaymentAmount('');
+      setDescription('');
+      setPaymentDate(new Date());
+      setShowBalancePayment(false);
+      fetchPayments();
+      onUpdate();
+    } catch (error) {
+      console.error('Error recording balance payment:', error);
+      Alert.alert('Error', 'Failed to record balance payment');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getCurrentBalance = () => {
     return Math.max(0, tenant.balance_amount);
   };
 
+  const getTotalAdvance = () => {
+    return tenant.advance_amount;
+  };
+
+  const hasInitialAmounts = tenant.advance_amount > 0 || tenant.balance_amount > 0;
+
   return (
-    <View className="bg-[#262624] rounded-lg p-4 border border-gray-700">
+    <ScrollView className="bg-[#262624] rounded-lg p-4 border border-gray-700" showsVerticalScrollIndicator={false}>
       <View className="flex-row justify-between items-center mb-4">
         <Text className="text-lg font-semibold text-white">Payment Management</Text>
-        <TouchableOpacity
-          className="bg-[#C96342] rounded-lg px-4 py-2"
-          onPress={() => setShowAddPayment(true)}
-        >
-          <Text className="text-white font-semibold">Add Payment</Text>
-        </TouchableOpacity>
+        {!hasInitialAmounts ? (
+          <TouchableOpacity
+            className="bg-[#C96342] rounded-lg px-4 py-2"
+            onPress={() => setShowSetInitialAmount(true)}
+          >
+            <Text className="text-white font-semibold">Set Initial Amounts</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            className="bg-blue-600 rounded-lg px-4 py-2"
+            onPress={() => setShowBalancePayment(true)}
+            disabled={getCurrentBalance() === 0}
+          >
+            <Text className="text-white font-semibold">
+              {getCurrentBalance() === 0 ? 'No Balance' : 'Pay Balance'}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Payment Summary */}
       <View className="grid grid-cols-2 gap-4 mb-4">
         <View className="bg-[#1F1E1D] rounded-lg p-3">
-          <Text className="text-gray-300 text-sm">Total Advance</Text>
+          <Text className="text-gray-300 text-sm">Advance Amount</Text>
           <Text className="text-green-400 font-semibold text-lg">
             ₹{getTotalAdvance().toLocaleString()}
           </Text>
         </View>
         <View className="bg-[#1F1E1D] rounded-lg p-3">
-          <Text className="text-gray-300 text-sm">Current Balance</Text>
+          <Text className="text-gray-300 text-sm">Balance Remaining</Text>
           <Text className="text-red-400 font-semibold text-lg">
             ₹{getCurrentBalance().toLocaleString()}
           </Text>
@@ -149,7 +216,7 @@ export function TenantPaymentManager({ tenant, onUpdate }: TenantPaymentManagerP
 
       {/* Payment History */}
       <Text className="text-white font-semibold mb-2">Payment History</Text>
-      <ScrollView className="max-h-60" showsVerticalScrollIndicator={false}>
+      <View className="max-h-60">
         {payments.length === 0 ? (
           <Text className="text-gray-400 text-center py-4">
             No payments found
@@ -160,7 +227,11 @@ export function TenantPaymentManager({ tenant, onUpdate }: TenantPaymentManagerP
               <View className="flex-row justify-between items-center">
                 <View className="flex-1">
                   <Text className="text-white font-medium">
-                    {payment.payment_type === 'advance' ? 'Advance' : 'Balance Payment'}
+                    {payment.payment_type === 'advance' 
+                      ? 'Advance Payment' 
+                      : payment.amount < 0 
+                        ? 'Balance Set' 
+                        : 'Balance Payment'}
                   </Text>
                   <Text className="text-gray-400 text-sm">
                     {new Date(payment.payment_date).toLocaleDateString()}
@@ -172,49 +243,112 @@ export function TenantPaymentManager({ tenant, onUpdate }: TenantPaymentManagerP
                   )}
                 </View>
                 <Text className={`font-semibold ${
-                  payment.payment_type === 'advance' ? 'text-green-400' : 'text-blue-400'
+                  payment.payment_type === 'advance' 
+                    ? 'text-green-400' 
+                    : payment.amount < 0 
+                      ? 'text-red-400' 
+                      : 'text-blue-400'
                 }`}>
-                  ₹{payment.amount.toLocaleString()}
+                  {payment.amount < 0 ? '-' : '+'}₹{Math.abs(payment.amount).toLocaleString()}
                 </Text>
               </View>
             </View>
           ))
         )}
-      </ScrollView>
+      </View>
 
-      {/* Add Payment Modal */}
+      {/* Set Initial Amounts Modal */}
       <Modal
-        visible={showAddPayment}
+        visible={showSetInitialAmount}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setShowAddPayment(false)}
+        onRequestClose={() => setShowSetInitialAmount(false)}
       >
         <View className="flex-1 justify-center items-center bg-black/50">
           <View className="bg-[#262624] rounded-lg p-6 w-80 border border-gray-600">
-            <Text className="text-white text-lg font-semibold mb-4">Add Payment</Text>
+            <Text className="text-white text-lg font-semibold mb-4">Set Initial Amounts</Text>
             
             <View className="mb-4">
-              <Text className="text-gray-300 mb-2">Payment Type</Text>
-              <View className="bg-[#1F1E1D] border border-gray-600 rounded-lg">
-                <Picker
-                  selectedValue={paymentType}
-                  onValueChange={(value) => setPaymentType(value)}
-                  style={{ color: 'white', backgroundColor: '#1F1E1D' }}
-                  dropdownIconColor="white"
-                >
-                  <Picker.Item label="Advance Payment" value="advance" />
-                  <Picker.Item label="Balance Payment" value="balance" />
-                </Picker>
-              </View>
+              <Text className="text-gray-300 mb-2">Advance Amount (₹)</Text>
+              <TextInput
+                className="bg-[#1F1E1D] text-white border border-gray-600 rounded-lg px-3 py-2"
+                value={advanceAmount}
+                onChangeText={setAdvanceAmount}
+                placeholder="Enter advance amount"
+                placeholderTextColor="#9CA3AF"
+                keyboardType="numeric"
+              />
             </View>
 
             <View className="mb-4">
-              <Text className="text-gray-300 mb-2">Amount (₹)</Text>
+              <Text className="text-gray-300 mb-2">Balance Amount (₹)</Text>
               <TextInput
                 className="bg-[#1F1E1D] text-white border border-gray-600 rounded-lg px-3 py-2"
-                value={amount}
-                onChangeText={setAmount}
-                placeholder="Enter amount"
+                value={balanceAmount}
+                onChangeText={setBalanceAmount}
+                placeholder="Enter balance amount"
+                placeholderTextColor="#9CA3AF"
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View className="mb-6">
+              <Text className="text-gray-300 mb-2">Date</Text>
+              <DatePicker
+                value={paymentDate}
+                onChange={setPaymentDate}
+                placeholder="Select date"
+              />
+            </View>
+
+            <View className="flex-row space-x-3">
+              <TouchableOpacity
+                className="flex-1 bg-[#C96342] rounded-lg py-3"
+                onPress={handleSetInitialAmounts}
+                disabled={loading}
+              >
+                <Text className="text-white font-semibold text-center">
+                  {loading ? 'Setting...' : 'Set Amounts'}
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                className="flex-1 bg-gray-600 rounded-lg py-3"
+                onPress={() => setShowSetInitialAmount(false)}
+                disabled={loading}
+              >
+                <Text className="text-white font-semibold text-center">Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Balance Payment Modal */}
+      <Modal
+        visible={showBalancePayment}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowBalancePayment(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black/50">
+          <View className="bg-[#262624] rounded-lg p-6 w-80 border border-gray-600">
+            <Text className="text-white text-lg font-semibold mb-4">Balance Payment</Text>
+            
+            <View className="mb-4 p-3 bg-[#1F1E1D] rounded-lg">
+              <Text className="text-gray-300 text-sm">Current Balance</Text>
+              <Text className="text-red-400 font-semibold text-lg">
+                ₹{getCurrentBalance().toLocaleString()}
+              </Text>
+            </View>
+
+            <View className="mb-4">
+              <Text className="text-gray-300 mb-2">Payment Amount (₹)</Text>
+              <TextInput
+                className="bg-[#1F1E1D] text-white border border-gray-600 rounded-lg px-3 py-2"
+                value={paymentAmount}
+                onChangeText={setPaymentAmount}
+                placeholder="Enter payment amount"
                 placeholderTextColor="#9CA3AF"
                 keyboardType="numeric"
               />
@@ -245,17 +379,17 @@ export function TenantPaymentManager({ tenant, onUpdate }: TenantPaymentManagerP
             <View className="flex-row space-x-3">
               <TouchableOpacity
                 className="flex-1 bg-[#C96342] rounded-lg py-3"
-                onPress={handleAddPayment}
+                onPress={handleBalancePayment}
                 disabled={loading}
               >
                 <Text className="text-white font-semibold text-center">
-                  {loading ? 'Adding...' : 'Add Payment'}
+                  {loading ? 'Recording...' : 'Record Payment'}
                 </Text>
               </TouchableOpacity>
               
               <TouchableOpacity
                 className="flex-1 bg-gray-600 rounded-lg py-3"
-                onPress={() => setShowAddPayment(false)}
+                onPress={() => setShowBalancePayment(false)}
                 disabled={loading}
               >
                 <Text className="text-white font-semibold text-center">Cancel</Text>
@@ -264,6 +398,6 @@ export function TenantPaymentManager({ tenant, onUpdate }: TenantPaymentManagerP
           </View>
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   );
 }
