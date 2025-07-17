@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AddRoomForm } from '../components/AddRoomForm';
+import { EditPropertyForm } from '../components/EditPropertyForm';
 import { DismissibleKeyboardView } from '../components/DismissibleKeyboardView';
 import { Header } from '../components/Header';
 import { RoomCard } from '../components/RoomCard';
@@ -23,6 +24,7 @@ export default function PropertyDetailsScreen() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
   const router = useRouter();
 
   const fetchPropertyDetails = async () => {
@@ -71,6 +73,11 @@ export default function PropertyDetailsScreen() {
     fetchPropertyDetails();
   };
 
+  const handlePropertyUpdated = () => {
+    setShowEditForm(false);
+    fetchPropertyDetails();
+  };
+
   if (loading) {
     return (
       <SafeAreaView className='flex-1 justify-center items-center bg-[#1F1E1D]'>
@@ -91,14 +98,33 @@ export default function PropertyDetailsScreen() {
   const totalRooms = rooms.length;
 
   const rightComponent = (
-    <TouchableOpacity
-      className='bg-[#C96342] rounded-lg px-4 py-2'
-      onPress={() => setShowAddForm(!showAddForm)}
-    >
-      <Text className='text-white font-semibold'>
-        {showAddForm ? 'Cancel' : 'Add Room'}
-      </Text>
-    </TouchableOpacity>
+    <View className="flex-row space-x-2">
+      <TouchableOpacity
+        className="bg-blue-600 rounded-lg px-4 py-2"
+        onPress={() => setShowEditForm(!showEditForm)}
+      >
+        <Text className="text-white font-semibold">
+          {showEditForm ? 'Cancel' : 'Edit'}
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        className="bg-purple-600 rounded-lg px-4 py-2"
+        onPress={() => router.push({
+          pathname: './property-expenses',
+          params: { propertyId: propertyId, propertyName: property?.name }
+        })}
+      >
+        <Text className="text-white font-semibold">Expenses</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        className='bg-[#C96342] rounded-lg px-4 py-2'
+        onPress={() => setShowAddForm(!showAddForm)}
+      >
+        <Text className='text-white font-semibold'>
+          {showAddForm ? 'Cancel' : 'Add Room'}
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 
   return (
@@ -138,6 +164,16 @@ export default function PropertyDetailsScreen() {
                   </Text>
                 </View>
               </View>
+
+              {showEditForm && (
+                <View className='mb-6'>
+                  <EditPropertyForm
+                    property={property}
+                    onPropertyUpdated={handlePropertyUpdated}
+                    onCancel={() => setShowEditForm(false)}
+                  />
+                </View>
+              )}
 
               <Text className='text-xl font-bold text-white mb-4'>
                 Rooms

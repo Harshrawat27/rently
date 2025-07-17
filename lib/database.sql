@@ -47,6 +47,35 @@ CREATE TABLE electric_meter_readings (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create rent_collections table
+CREATE TABLE rent_collections (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+    room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
+    month VARCHAR(7) NOT NULL, -- YYYY-MM format
+    rent_amount DECIMAL(10,2) NOT NULL,
+    electricity_bill DECIMAL(10,2) DEFAULT 0,
+    total_amount DECIMAL(10,2) NOT NULL,
+    is_collected BOOLEAN DEFAULT FALSE,
+    collected_date TIMESTAMP WITH TIME ZONE,
+    due_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(tenant_id, month)
+);
+
+-- Create property_expenses table
+CREATE TABLE property_expenses (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    property_id UUID REFERENCES properties(id) ON DELETE CASCADE,
+    room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
+    expense_name VARCHAR(255) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    expense_date DATE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Create indexes for better performance
 CREATE INDEX idx_properties_user_id ON properties(user_id);
 CREATE INDEX idx_rooms_property_id ON rooms(property_id);
@@ -54,12 +83,20 @@ CREATE INDEX idx_tenants_room_id ON tenants(room_id);
 CREATE INDEX idx_electric_readings_tenant_id ON electric_meter_readings(tenant_id);
 CREATE INDEX idx_tenants_active ON tenants(is_active);
 CREATE INDEX idx_rooms_occupied ON rooms(is_occupied);
+CREATE INDEX idx_rent_collections_tenant_id ON rent_collections(tenant_id);
+CREATE INDEX idx_rent_collections_month ON rent_collections(month);
+CREATE INDEX idx_rent_collections_due_date ON rent_collections(due_date);
+CREATE INDEX idx_property_expenses_property_id ON property_expenses(property_id);
+CREATE INDEX idx_property_expenses_room_id ON property_expenses(room_id);
+CREATE INDEX idx_property_expenses_date ON property_expenses(expense_date);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE properties ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tenants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE electric_meter_readings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rent_collections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE property_expenses ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies
 CREATE POLICY "Users can only see their own properties" ON properties
@@ -91,6 +128,23 @@ CREATE POLICY "Users can only see meter readings from their tenants" ON electric
         )
     );
 
+CREATE POLICY "Users can only see rent collections from their tenants" ON rent_collections
+    FOR ALL USING (
+        tenant_id IN (
+            SELECT t.id FROM tenants t
+            JOIN rooms r ON t.room_id = r.id
+            JOIN properties p ON r.property_id = p.id
+            WHERE p.user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can only see expenses from their properties" ON property_expenses
+    FOR ALL USING (
+        property_id IN (
+            SELECT id FROM properties WHERE user_id = auth.uid()
+        )
+    );
+
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -111,4 +165,10 @@ CREATE TRIGGER update_tenants_updated_at BEFORE UPDATE ON tenants
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_electric_readings_updated_at BEFORE UPDATE ON electric_meter_readings
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_rent_collections_updated_at BEFORE UPDATE ON rent_collections
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_property_expenses_updated_at BEFORE UPDATE ON property_expenses
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

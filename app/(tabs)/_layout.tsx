@@ -43,6 +43,15 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name='rent-collections'
+        options={{
+          title: 'Rent',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name='creditcard.fill' color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

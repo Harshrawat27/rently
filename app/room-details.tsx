@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { Room, Tenant } from '../lib/types';
 import { TenantCard } from '../components/TenantCard';
 import { AddTenantForm } from '../components/AddTenantForm';
+import { EditRoomForm } from '../components/EditRoomForm';
 import { Header } from '../components/Header';
 import { DismissibleKeyboardView } from '../components/DismissibleKeyboardView';
 
@@ -15,6 +16,7 @@ export default function RoomDetailsScreen() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
 
   const fetchRoomDetails = async () => {
     try {
@@ -64,6 +66,11 @@ export default function RoomDetailsScreen() {
     fetchRoomDetails();
   };
 
+  const handleRoomUpdated = () => {
+    setShowEditForm(false);
+    fetchRoomDetails();
+  };
+
   if (loading) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-[#1F1E1D]">
@@ -82,16 +89,28 @@ export default function RoomDetailsScreen() {
 
   const activeTenants = tenants.filter(tenant => tenant.is_active);
 
-  const rightComponent = !room?.is_occupied ? (
-    <TouchableOpacity
-      className="bg-[#C96342] rounded-lg px-4 py-2"
-      onPress={() => setShowAddForm(!showAddForm)}
-    >
-      <Text className="text-white font-semibold">
-        {showAddForm ? 'Cancel' : 'Add Tenant'}
-      </Text>
-    </TouchableOpacity>
-  ) : null;
+  const rightComponent = (
+    <View className="flex-row space-x-2">
+      <TouchableOpacity
+        className="bg-blue-600 rounded-lg px-4 py-2"
+        onPress={() => setShowEditForm(!showEditForm)}
+      >
+        <Text className="text-white font-semibold">
+          {showEditForm ? 'Cancel' : 'Edit'}
+        </Text>
+      </TouchableOpacity>
+      {!room?.is_occupied && (
+        <TouchableOpacity
+          className="bg-[#C96342] rounded-lg px-4 py-2"
+          onPress={() => setShowAddForm(!showAddForm)}
+        >
+          <Text className="text-white font-semibold">
+            {showAddForm ? 'Cancel' : 'Add Tenant'}
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-[#1F1E1D]">
@@ -131,6 +150,16 @@ export default function RoomDetailsScreen() {
                   </View>
                 </View>
               </View>
+
+              {showEditForm && (
+                <View className="mb-6">
+                  <EditRoomForm 
+                    room={room} 
+                    onRoomUpdated={handleRoomUpdated}
+                    onCancel={() => setShowEditForm(false)}
+                  />
+                </View>
+              )}
 
               <Text className="text-xl font-bold text-white mb-4">Tenants</Text>
 

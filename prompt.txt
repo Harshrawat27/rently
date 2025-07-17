@@ -1,0 +1,17 @@
+1. Edit room into functionality                                                                  
+2. Edit property info functionality                                                              
+3. see electricity bill is not the only thing we also have to collect rent per month so we need  
+fucntionality for that. We have to do something where on that date of next month app has to      
+automatically create rent box for that where we just need to press DONE button to mark that      
+month. in this box give me one option where i can add amount i collect from electricity bill of that room because that is also income, so for home dashboard you have to show this as income 
+4. and on tenant also edit fucntionality means where i can change their name and phone number    
+also no just amount. because maybe by mistake i'd added wrong number                             
+5. if there are 5 person I can add their name and number also if i want to and is there any way  
+using which we can press their number and make call via mobile.                                  
+6. Give me functionality where i can archive current tenant when new tenant for that same room   
+will come. the moment i archive someone mark again that room as available                  
+7. on property give me one button expense and here i can add all expenses related to property,   
+here i need 3 columns, one 1st one we can select from current added room and add one option      
+general so if something is not related to particular room, then 2nd col we can add that expense  
+name, on 3rd col amount that we spend. then on home page we'll show total expense   and then we can show on home dashboard total income and expense and total profit or loss. 
+8. on home page don't show that recent property and recent tenant info just total properties, total room, occupied room, total expense, total income, profit/loss we should be able to change it to montly yearly or last 3 months means user should be able to change it select range or months, and last based on curretn requirement improve design of home page a bit. 
