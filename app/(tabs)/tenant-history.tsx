@@ -80,17 +80,22 @@ export default function TenantHistoryScreen() {
           });
         }
 
-        // Calculate occupancy months for this tenant
-        const tenantCycles = cyclesData?.filter(c => c.tenant_id === tenant.id) || [];
+        // Calculate occupancy months for this tenant (only past and current months)
+        const today = new Date();
+        const tenantCycles = cyclesData?.filter(c => {
+          const cycleStartDate = new Date(c.cycle_start_date);
+          return c.tenant_id === tenant.id && cycleStartDate <= today;
+        }) || [];
+        
         const occupancyMonths = tenantCycles.map(cycle => {
           const startDate = new Date(cycle.cycle_start_date);
           return `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}`;
         });
 
-        // Add booking month if not already included
+        // Add booking month if not already included and it's not in the future
         const bookingDate = new Date(tenant.booking_date);
         const bookingMonth = `${bookingDate.getFullYear()}-${String(bookingDate.getMonth() + 1).padStart(2, '0')}`;
-        if (!occupancyMonths.includes(bookingMonth)) {
+        if (!occupancyMonths.includes(bookingMonth) && bookingDate <= today) {
           occupancyMonths.unshift(bookingMonth);
         }
 
@@ -186,9 +191,24 @@ export default function TenantHistoryScreen() {
     );
   }
 
+  const rightComponent = (
+    <TouchableOpacity
+      className="bg-[#C96342] rounded-lg px-4 py-2"
+      onPress={() => {
+        setLoading(true);
+        fetchTenantHistory();
+      }}
+      disabled={loading}
+    >
+      <Text className="text-white font-semibold">
+        {loading ? 'Refreshing...' : 'Refresh'}
+      </Text>
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView className="flex-1 bg-[#1F1E1D]" edges={['top']}>
-      <Header title="Tenant History" />
+      <Header title="Tenant History" rightComponent={rightComponent} />
       
       <ScrollView 
         className="flex-1"
