@@ -1,1 +1,4 @@
 1. dont give edit option on tent --> to edit advance and balance this will create trouble. remove this edit from everywhere. 
+2. data we can see all the old log of paid rent for which room which tenant paid amount and if click it then we can see further log as well like how he paid 
+3. if we are increasing rent then don't increase that in old paid amounts this will create problem start showing old invoiced as unpaid and when user is increaseing rent then ask him if he wants to increase for current cycle also and based on that take action. 
+4. one the amount of current cycle is fully paid we can send them invoice on whatsapp

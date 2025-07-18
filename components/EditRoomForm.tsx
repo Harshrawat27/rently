@@ -31,13 +31,32 @@ export function EditRoomForm({ room, onRoomUpdated, onCancel }: EditRoomFormProp
       return;
     }
 
+    // Check if rent amount is being increased
+    if (rentAmountNum > room.rent_amount) {
+      Alert.alert(
+        'Rent Increase Detected',
+        `You are increasing the rent from ₹${room.rent_amount.toLocaleString()} to ₹${rentAmountNum.toLocaleString()}.\n\nThis will only affect future billing cycles. Past paid cycles will remain unchanged.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Continue', 
+            onPress: () => updateRoom(roomNumber.trim(), rentAmountNum)
+          }
+        ]
+      );
+    } else {
+      updateRoom(roomNumber.trim(), rentAmountNum);
+    }
+  };
+
+  const updateRoom = async (roomNumberValue: string, rentAmountValue: number) => {
     setLoading(true);
     try {
       const { error } = await supabase
         .from('rooms')
         .update({
-          room_number: roomNumber.trim(),
-          rent_amount: rentAmountNum,
+          room_number: roomNumberValue,
+          rent_amount: rentAmountValue,
         })
         .eq('id', room.id);
 

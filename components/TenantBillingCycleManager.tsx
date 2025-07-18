@@ -100,13 +100,22 @@ export function TenantBillingCycleManager({ tenant, onUpdate }: TenantBillingCyc
           .eq('cycle_start_date', cycleStartDate.toISOString().split('T')[0]);
 
         if (!existingCycle || existingCycle.length === 0) {
+          // Get current room rent amount for new cycles
+          const { data: roomData } = await supabase
+            .from('rooms')
+            .select('rent_amount')
+            .eq('id', tenant.room_id)
+            .single();
+
+          const currentRentAmount = roomData?.rent_amount || 0;
+
           cycles.push({
             tenant_id: tenant.id,
             cycle_start_date: cycleStartDate.toISOString().split('T')[0],
             cycle_end_date: cycleEndDate.toISOString().split('T')[0],
-            rent_amount: 0,
+            rent_amount: currentRentAmount,
             electricity_bill: 0,
-            total_amount: 0,
+            total_amount: currentRentAmount,
             is_paid: false,
           });
         }
