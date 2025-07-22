@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
   Alert,
+  Image,
 } from 'react-native';
 import { useAuth } from '../../lib/auth';
 
@@ -77,7 +78,12 @@ export default function SignInScreen() {
         className='px-6'
       >
         {/* Header */}
-        <View className='mt-16 mb-8'>
+        <View className='mt-16 mb-8 items-center'>
+          <Image
+            source={require('../../assets/images/adaptive-icon.png')}
+            className='w-20 h-20 mb-6'
+            resizeMode='contain'
+          />
           <Text className='text-white text-3xl font-bold mb-2'>
             Welcome Back
           </Text>
