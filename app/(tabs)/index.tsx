@@ -173,9 +173,9 @@ export default function DashboardScreen() {
               style={{ color: 'white', backgroundColor: '#262624' }}
               dropdownIconColor="white"
             >
-              <Picker.Item label="Last Month" value="monthly" />
-              <Picker.Item label="Last 3 Months" value="quarterly" />
-              <Picker.Item label="Last Year" value="yearly" />
+              <Picker.Item label="Last Month" value="monthly" color="white" />
+              <Picker.Item label="Last 3 Months" value="quarterly" color="white" />
+              <Picker.Item label="Last Year" value="yearly" color="white" />
             </Picker>
           </View>
         </View>

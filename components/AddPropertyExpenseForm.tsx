@@ -95,12 +95,13 @@ export function AddPropertyExpenseForm({ propertyId, onExpenseAdded }: AddProper
             style={{ color: 'white', backgroundColor: '#1F1E1D' }}
             dropdownIconColor="white"
           >
-            <Picker.Item label="General (No specific room)" value="" />
+            <Picker.Item label="General (No specific room)" value="" color="white" />
             {rooms.map((room) => (
               <Picker.Item 
                 key={room.id} 
                 label={`Room ${room.room_number}`} 
-                value={room.id} 
+                value={room.id}
+                color="white"
               />
             ))}
           </Picker>
