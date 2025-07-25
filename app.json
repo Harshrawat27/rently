@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "rently",
+    "name": "Rently",
     "slug": "rently",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,6 +16,13 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "CALL_PHONE",
+        "VIBRATE",
+        "SYSTEM_ALERT_WINDOW"
+      ],
       "edgeToEdgeEnabled": true,
       "package": "com.harshrawat.rently"
     },
